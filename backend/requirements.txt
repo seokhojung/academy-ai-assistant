@@ -3,8 +3,8 @@ uvicorn[standard]==0.24.0
 firebase-admin==6.2.0
 sqlalchemy==2.0.23
 sqlmodel==0.0.16
-pydantic[email]==2.4.2
-pydantic-settings==2.0.3
+pydantic[email]==1.10.13
+pydantic-settings==1.0.1
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
