@@ -1,0 +1,31 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+firebase-admin==6.2.0
+sqlalchemy==2.0.23
+sqlmodel==0.0.16
+pydantic[email]==2.5.0
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# Excel Rebuilder 관련
+openpyxl==3.1.2
+portalocker==2.7.0
+
+# Celery 비동기 작업
+celery==5.3.4
+redis==5.0.1
+
+# Gemini API 연동
+google-generativeai==0.3.2
+
+# 파일 처리 및 GCS 연동
+google-cloud-storage==2.10.0
+aiofiles==23.2.1
+
+# 테스트 (선택사항이지만 권장)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2 

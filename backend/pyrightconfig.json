@@ -1,0 +1,8 @@
+{
+  "typeCheckingMode": "basic",
+  "reportMissingImports": false,
+  "reportOptionalMemberAccess": false,
+  "extraPaths": [
+    "app"
+  ]
+} 
