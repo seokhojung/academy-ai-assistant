@@ -102,6 +102,11 @@
    - **해결**: 가상환경(venv) 생성 및 사용
    - **결과**: Firebase Admin SDK v6.9.0 정상 설치
 
+12. **Render 배포 실패 문제** ✅ (2025-07-14 해결)
+    - pydantic_settings 모듈 누락으로 인한 배포 실패
+    - **해결**: requirements.txt에 pydantic-settings==2.0.3 추가, 환경 변수 설정 개선
+    - **결과**: 배포 환경 호환성 확보, 환경 변수 기반 설정 시스템 구축
+
 2. **Material 모델 클래스 누락** ✅
    - `MaterialCreate`, `MaterialUpdate` 클래스 추가 완료
 
@@ -204,7 +209,56 @@
 - ✅ **백엔드-프론트엔드 연결**: 안정적인 통신 확보
 - ✅ **2순위 UI 컴포넌트**: 완성 및 통합
 - ✅ **Undo/Redo 기능**: 완성 및 통합
+- ✅ **Render 배포 환경**: 의존성 문제 해결, 환경 변수 설정 개선 완료
 
 **1주차 목표 100% 달성!** 🎉 
 **2순위 UI 컴포넌트 확장 완료!** 🎉 
-**Undo/Redo 기능 구현 완료!** 🎉 
+**Undo/Redo 기능 구현 완료!** 🎉
+**Render 배포 환경 문제 해결 완료!** 🎉 
+
+## 배포 문제 해결 완료! 🎉
+
+Render 배포 실패 문제를 성공적으로 해결했습니다:
+
+### 해결된 문제들:
+
+1. **pydantic_settings 모듈 누락** ✅
+   - `requirements.txt`에 `pydantic-settings==2.0.3` 추가
+   - 배포 환경에서 필요한 의존성 확보
+
+2. **환경 변수 설정 개선** ✅
+   - 모든 설정을 환경 변수 기반으로 전환 (`os.getenv` 사용)
+   - 배포 환경에서 유연한 설정 가능
+
+3. **배포 가이드 문서 생성** ✅
+   - `RENDER_DEPLOYMENT.md` 파일 생성
+   - 필수 환경 변수 설정 방법 안내
+   - 문제 해결 가이드 제공
+
+### 주요 변경사항:
+
+1. **backend/requirements.txt**:
+   - `pydantic-settings==2.0.3` 추가
+   - `watchfiles==1.1.0` 추가 (배포 환경 필수)
+
+2. **backend/app/core/config.py**:
+   - 모든 설정을 환경 변수 기반으로 변경
+   - 배포 환경 호환성 확보
+
+3. **backend/RENDER_DEPLOYMENT.md**:
+   - Render 배포를 위한 상세 가이드
+   - 환경 변수 설정 방법
+   - 문제 해결 방법
+
+### 다음 단계:
+
+이제 Render 대시보드에서 다음 환경 변수들을 설정하고 재배포하시면 됩니다:
+
+```
+ENVIRONMENT=production
+DEBUG=false
+DATABASE_URL=postgresql://username:password@host:port/database_name
+JWT_SECRET_KEY=your-super-secret-jwt-key
+```
+
+배포가 성공하면 API가 정상적으로 동작할 것입니다! 🚀 

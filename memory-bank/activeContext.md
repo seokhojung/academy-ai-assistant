@@ -13,6 +13,7 @@
 - **백엔드-프론트엔드 연결 완료** (API 클라이언트 구현, 프록시 설정, 연결 테스트)
 - **2순위 UI 컴포넌트 확장 완료** (AccentButton micro-interactions, 캘린더 컴포넌트, 차트 컴포넌트)
 - **학생관리 페이지 Undo/Redo 기능 구현 완료** (편집 히스토리 관리, 키보드 단축키, 실시간 피드백)
+- **Render 배포 환경 문제 해결 완료** (pydantic-settings 의존성 추가, 환경 변수 설정 개선)
 
 ## 최근 변경 사항
 - firebase_admin 등 누락 의존성 설치 및 인증 코드 임시 비활성화
@@ -76,6 +77,12 @@
   - 데이터 일관성 확보 (모든 CRUD 작업이 백엔드와 동기화)
   - API 에러 처리 개선 (422 오류 시 상세 에러 메시지 표시)
   - 데이터 타입 변환 수정 (tuition_fee를 float로, tuition_due_date를 ISO 문자열로)
+- **Render 배포 환경 문제 해결 완료** (2025-07-14):
+  - pydantic_settings 모듈 누락으로 인한 배포 실패 해결
+  - requirements.txt에 pydantic-settings==2.0.3 추가
+  - 환경 변수 기반 설정 시스템으로 전환 (os.getenv 사용)
+  - Render 배포 가이드 문서 생성 (RENDER_DEPLOYMENT.md)
+  - 배포 환경 호환성 확보 및 안정성 향상
 
 ## 다음 단계
 - **3순위 고급 기능** (Excel 미리보기 컴포넌트, QR 코드 컴포넌트, Drag & Drop 파일 업로드)
