@@ -46,6 +46,9 @@ class Settings:
             ]
         elif self.environment == "production":
             return [
+                "https://academy-ai-assistants.vercel.app",
+                "https://academy-ai-assistant.vercel.app",
+                "https://*.vercel.app",
                 "https://your-domain.com",
                 "https://www.your-domain.com",
             ]
@@ -54,5 +57,5 @@ class Settings:
     
     # Debug
     debug: bool = config("DEBUG", default=True, cast=bool)
-    
+
 settings = Settings() 
