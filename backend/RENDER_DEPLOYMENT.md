@@ -72,8 +72,9 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 ## 문제 해결
 
-### pydantic_settings 오류
-- `requirements.txt`에 `pydantic-settings==2.0.3`이 포함되어 있는지 확인
+### 의존성 충돌 오류
+- `requirements.txt`에 `python-decouple==3.8`이 포함되어 있는지 확인
+- `pydantic-settings` 대신 `python-decouple`을 사용하여 의존성 충돌 해결
 
 ### 데이터베이스 연결 오류
 - `DATABASE_URL`이 올바르게 설정되어 있는지 확인

@@ -1,34 +1,34 @@
-from pydantic_settings import BaseSettings
 from typing import List
 import os
+from decouple import config
 from fastapi.middleware.cors import CORSMiddleware
 
 
-class Settings(BaseSettings):
+class Settings:
     # Environment
-    environment: str = os.getenv("ENVIRONMENT", "development")
+    environment: str = config("ENVIRONMENT", default="development")
     
     # Database
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./academy.db")
+    database_url: str = config("DATABASE_URL", default="sqlite:///./academy.db")
     
     # Redis (Celery 브로커)
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+    redis_url: str = config("REDIS_URL", default="redis://localhost:6379")
     
     # JWT
-    jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "your-super-secret-jwt-key-change-in-production")
-    jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
-    access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    jwt_secret_key: str = config("JWT_SECRET_KEY", default="your-super-secret-jwt-key-change-in-production")
+    jwt_algorithm: str = config("JWT_ALGORITHM", default="HS256")
+    access_token_expire_minutes: int = config("ACCESS_TOKEN_EXPIRE_MINUTES", default=30, cast=int)
     
     # Firebase
-    firebase_api_key: str = os.getenv("FIREBASE_API_KEY", "AIzaSyAo9FU7YNkepYGy4zeqqj_CM_SBcdOYSn8")
-    firebase_project_id: str = os.getenv("FIREBASE_PROJECT_ID", "academy-ai-assistant")
+    firebase_api_key: str = config("FIREBASE_API_KEY", default="AIzaSyAo9FU7YNkepYGy4zeqqj_CM_SBcdOYSn8")
+    firebase_project_id: str = config("FIREBASE_PROJECT_ID", default="academy-ai-assistant")
     
     # Gemini API
-    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "your-gemini-api-key")
+    gemini_api_key: str = config("GEMINI_API_KEY", default="your-gemini-api-key")
     
     # Google Cloud Storage
-    gcs_bucket_name: str = os.getenv("GCS_BUCKET_NAME", "academy-ai-assistant-files")
-    gcs_credentials_path: str = os.getenv("GCS_CREDENTIALS_PATH", "path/to/service-account-key.json")
+    gcs_bucket_name: str = config("GCS_BUCKET_NAME", default="academy-ai-assistant-files")
+    gcs_credentials_path: str = config("GCS_CREDENTIALS_PATH", default="path/to/service-account-key.json")
     
     # CORS - 환경별 설정
     @property
@@ -53,9 +53,6 @@ class Settings(BaseSettings):
             return []
     
     # Debug
-    debug: bool = os.getenv("DEBUG", "true").lower() == "true"
+    debug: bool = config("DEBUG", default=True, cast=bool)
     
-    class Config:
-        env_file = ".env"
-
 settings = Settings() 
