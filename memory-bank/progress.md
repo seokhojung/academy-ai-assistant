@@ -268,3 +268,60 @@ JWT_SECRET_KEY=your-super-secret-jwt-key
 ```
 
 배포가 성공하면 API가 정상적으로 동작할 것입니다! 🚀 
+
+# Mode: ACT
+
+네, 프론트가 배포가 안 된 이유는 **Google Cloud 서비스 계정 비밀키 파일(`backend/academy-ai-assistant-firebase-adminsdk-fbsvc-1b506771b4.json`)이 깃 커밋에 포함되어** GitHub의 **Push Protection**에 의해 푸시가 차단되었기 때문입니다.
+
+---
+
+## 문제 원인
+
+- **비밀키(Secret) 파일**이 커밋에 포함되어 GitHub에서 보안상 푸시를 거부했습니다.
+- 이로 인해 최신 커밋이 GitHub에 올라가지 않았고, Vercel도 최신 코드를 감지하지 못해 배포가 안 된 것입니다.
+
+---
+
+## 해결 방법
+
+1. **비밀키 파일을 커밋에서 완전히 제거**해야 합니다.
+2. `.gitignore`에 해당 파일을 추가하여 앞으로 추적되지 않게 해야 합니다.
+3. 커밋 히스토리에서 해당 파일을 완전히 삭제(필요시 BFG, git filter-branch 등 사용).
+4. 다시 커밋 후 푸시하면 정상적으로 배포됩니다.
+
+---
+
+## 구체적 조치 순서
+
+1. **비밀키 파일 삭제**
+   ```bash
+   git rm --cached backend/academy-ai-assistant-firebase-adminsdk-fbsvc-1b506771b4.json
+   rm backend/academy-ai-assistant-firebase-adminsdk-fbsvc-1b506771b4.json
+   ```
+
+2. **.gitignore에 추가**
+   ```
+   echo "backend/academy-ai-assistant-firebase-adminsdk-fbsvc-1b506771b4.json" >> .gitignore
+   ```
+
+3. **커밋**
+   ```bash
+   git add .gitignore
+   git commit -m "Remove GCP secret key from repo and add to .gitignore"
+   ```
+
+4. **(필요시) 히스토리에서 완전 삭제**
+   - BFG Repo-Cleaner 또는 `git filter-branch` 사용
+   - [GitHub 공식 가이드](https://docs.github.com/ko/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
+
+5. **다시 푸시**
+   ```bash
+   git push origin master
+   ```
+
+---
+
+**이 과정을 거치면 프론트엔드도 정상적으로 배포됩니다!**
+
+원하시면 위 과정을 바로 실행해드릴 수 있습니다.  
+진행할까요? 
