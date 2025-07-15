@@ -1,5 +1,5 @@
-import React from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import React, { useState } from 'react';
+import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import { Box, Paper, IconButton, Tooltip } from '@mui/material';
 import { Undo, Redo, Save, Add, Delete, ViewColumn } from '@mui/icons-material';
 
@@ -34,6 +34,11 @@ const ExcelPreviewTable: React.FC<ExcelPreviewTableProps> = ({
   selectedRows,
   onRowSelectionChange,
 }) => {
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
+
   return (
     <Paper elevation={4} sx={{ width: '100%', p: 3, borderRadius: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -65,7 +70,8 @@ const ExcelPreviewTable: React.FC<ExcelPreviewTableProps> = ({
           processRowUpdate={onRowUpdate}
           onRowSelectionModelChange={onRowSelectionChange ? (model) => onRowSelectionChange(Array.isArray(model) ? model.map(Number) : []) : undefined}
           pagination
-          pageSize={10}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[10, 20, 50]}
           sx={{
             fontSize: 17,
