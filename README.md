@@ -236,4 +236,4 @@ docker-compose exec redis redis-cli info memory
 
 ---
 
-**Academy AI Assistant** - 학원 운영의 미래를 만들어갑니다 🎓 
+**Academy AI Assistant** - 학원 운영의 미래를 만들어갑니다 🎓 "# Trigger redeploy" 
