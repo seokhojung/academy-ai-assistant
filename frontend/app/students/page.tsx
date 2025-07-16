@@ -1226,7 +1226,7 @@ export default function StudentsPage() {
                 checkboxSelection
                 disableRowSelectionOnClick={true}
                 disableColumnMenu={true}
-                slots={{ toolbar: GridToolbar }}
+
                 editMode="cell"
                 isCellEditable={(params) => params.field !== 'created_at' && params.field !== 'actions'}
                 onCellClick={(params, event) => {
