@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://academy-ai-assistant.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface ApiResponse<T> {
   data: T;
@@ -181,7 +181,23 @@ class ApiClient {
   async healthCheck() {
     return this.request('/health');
   }
-}
+
+  // 사용자 컬럼 설정 관련 API
+  async getColumnSettings(pageName: string) {
+    return this.request(`/api/v1/users/column-settings/${pageName}`);
+  }
+
+  async updateColumnSettings(pageName: string, settings: {
+    visible_columns: string[];
+    hidden_columns: string[];
+    column_order: string[];
+  }) {
+    return this.request(`/api/v1/users/column-settings/${pageName}`, {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    });
+  }
+};
 
 export const apiClient = new ApiClient();
 export default apiClient; 

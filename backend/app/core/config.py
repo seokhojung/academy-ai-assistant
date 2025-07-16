@@ -11,6 +11,13 @@ class Settings:
     # Database
     database_url: str = config("DATABASE_URL", default="sqlite:///./academy.db")
     
+    # 로컬 개발 시 SQLite 사용
+    @property
+    def get_database_url(self) -> str:
+        if self.environment == "development" and not os.getenv("DATABASE_URL"):
+            return "sqlite:///./academy.db"
+        return self.database_url
+    
     # Redis (Celery 브로커)
     redis_url: str = config("REDIS_URL", default="redis://localhost:6379")
     

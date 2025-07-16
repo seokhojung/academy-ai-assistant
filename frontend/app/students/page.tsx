@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { TextField } from '@mui/material';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { TableRowSkeleton } from '@/components/ui/skeleton';
+import { StudentsPageSkeleton } from '../../src/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '../../lib/api-client';
 import AIChatBox from '../../components/ai-chat-box';
@@ -16,7 +16,7 @@ import Handsontable from 'handsontable';
 import 'handsontable/dist/handsontable.full.min.css';
 import { DataGrid, GridColDef, GridRowsProp, GridToolbar, useGridApiRef, GridSortModel } from '@mui/x-data-grid';
 import { Box, Paper, Button as MuiButton, IconButton, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText, Chip, Divider, Checkbox } from '@mui/material';
-import { Undo, Redo, Save, Cancel, Add, Delete, Edit, MoreVert, ViewColumn, ViewColumnOutlined, Pause, ArrowDownward, FilterList, VisibilityOff, DragIndicator } from '@mui/icons-material';
+import { Undo, Redo, Save, Cancel, Add, Delete, Edit, MoreVert, ViewColumn, ViewColumnOutlined, Pause, ArrowDownward, FilterList, VisibilityOff, DragIndicator, AddCircle } from '@mui/icons-material';
 import SchoolRounded from '@mui/icons-material/SchoolRounded';
 import PeopleAltRounded from '@mui/icons-material/PeopleAltRounded';
 import PersonAddAlt1Rounded from '@mui/icons-material/PersonAddAlt1Rounded';
@@ -115,7 +115,7 @@ export default function StudentsPage() {
     if (columns.length > 0) {
       const columnFields = columns.map(col => col.field);
       if (columnOrder.length === 0 || JSON.stringify(columnOrder) !== JSON.stringify(columnFields)) {
-        console.log('Initializing column order:', columnFields);
+        // console.log('Initializing column order:', columnFields);
         setColumnOrder(columnFields);
       }
     }
@@ -123,10 +123,10 @@ export default function StudentsPage() {
   
   // 컬럼 순서에 따라 정렬된 컬럼 배열 생성
   const orderedColumns = useMemo(() => {
-    console.log('Creating ordered columns:', { columnOrder, columnsLength: columns.length });
+    // console.log('Creating ordered columns:', { columnOrder, columnsLength: columns.length });
     
     if (columnOrder.length === 0 || columnOrder.length !== columns.length) {
-      console.log('Using original columns order');
+      // console.log('Using original columns order');
       return columns;
     }
     
@@ -135,7 +135,7 @@ export default function StudentsPage() {
       .map(field => columnMap.get(field))
       .filter(Boolean) as GridColDef[];
     
-    console.log('Ordered columns result:', ordered.map(col => col.field));
+    // console.log('Ordered columns result:', ordered.map(col => col.field));
     return ordered;
   }, [columns, columnOrder]);
   
@@ -155,32 +155,62 @@ export default function StudentsPage() {
   };
   
   // 드롭
-  const handleDrop = (e: React.DragEvent, targetField: string) => {
+  const handleDrop = async (e: React.DragEvent, targetField: string) => {
     e.preventDefault();
-    console.log('Drop event:', { draggedColumn, targetField });
+    // console.log('Drop event:', { draggedColumn, targetField });
     
     if (draggedColumn && draggedColumn !== targetField) {
       const newOrder = [...columnOrder];
       const draggedIndex = newOrder.indexOf(draggedColumn);
       const targetIndex = newOrder.indexOf(targetField);
       
-      console.log('Column order before:', newOrder);
-      console.log('Dragged index:', draggedIndex, 'Target index:', targetIndex);
+      // console.log('Column order before:', newOrder);
+      // console.log('Dragged index:', draggedIndex, 'Target index:', targetIndex);
       
       // 드래그된 컬럼 제거
       newOrder.splice(draggedIndex, 1);
       // 타겟 위치에 삽입
       newOrder.splice(targetIndex, 0, draggedColumn);
       
-      console.log('Column order after:', newOrder);
+      // console.log('Column order after:', newOrder);
       
       setColumnOrder(newOrder);
       
-      toast({
-        title: "컬럼 순서 변경 완료",
-        description: "컬럼 순서가 변경되었습니다.",
-        variant: "success",
-      });
+      // 강제 리렌더링을 위한 상태 업데이트
+      setColumns(prev => [...prev]);
+      
+      // 서버에 컬럼 설정 업데이트
+      try {
+        const visibleColumns = columns.map(col => col.field);
+        const hiddenColumns: string[] = []; // 숨겨진 컬럼이 있다면 여기에 추가
+        
+        const response = await apiClient.updateColumnSettings('students', {
+          visible_columns: visibleColumns,
+          hidden_columns: hiddenColumns,
+          column_order: newOrder
+        });
+        
+        if (response.success) {
+          toast({
+            title: "컬럼 순서 변경 완료",
+            description: "컬럼 순서가 변경되었습니다. (서버에 저장되었습니다)",
+            variant: "success",
+          });
+        } else {
+          toast({
+            title: "저장 실패",
+            description: "서버에 설정을 저장하는데 실패했습니다.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('컬럼 설정 업데이트 실패:', error);
+        toast({
+          title: "저장 실패",
+          description: "서버에 설정을 저장하는데 실패했습니다.",
+          variant: "destructive",
+        });
+      }
     }
     setDraggedColumn(null);
   };
@@ -192,7 +222,7 @@ export default function StudentsPage() {
   };
 
   // 컬럼 헤더 편집 완료
-  const handleHeaderEditComplete = (field: string) => {
+  const handleHeaderEditComplete = async (field: string) => {
     if (editingHeader === field && headerEditValue.trim()) {
       setColumns(prev => prev.map(col => 
         col.field === field 
@@ -200,27 +230,38 @@ export default function StudentsPage() {
           : col
       ));
       
-      // 컬럼 메타데이터를 로컬 스토리지에 업데이트
+      // 서버에 컬럼 설정 업데이트
       try {
-        const savedColumns = localStorage.getItem('studentTableColumns');
-        if (savedColumns) {
-          const columnsData = JSON.parse(savedColumns);
-          const updatedColumns = columnsData.map((col: any) => 
-            col.field === field 
-              ? { ...col, headerName: headerEditValue.trim() }
-              : col
-          );
-          localStorage.setItem('studentTableColumns', JSON.stringify(updatedColumns));
+        const visibleColumns = columns.map(col => col.field);
+        const hiddenColumns: string[] = []; // 숨겨진 컬럼이 있다면 여기에 추가
+        
+        const response = await apiClient.updateColumnSettings('students', {
+          visible_columns: visibleColumns,
+          hidden_columns: hiddenColumns,
+          column_order: columnOrder
+        });
+        
+        if (response.success) {
+          toast({
+            title: "헤더 수정 완료",
+            description: `컬럼 헤더가 "${headerEditValue.trim()}"로 변경되었습니다. (서버에 저장되었습니다)`,
+            variant: "success",
+          });
+        } else {
+          toast({
+            title: "저장 실패",
+            description: "서버에 설정을 저장하는데 실패했습니다.",
+            variant: "destructive",
+          });
         }
       } catch (error) {
-        console.error('컬럼 메타데이터 업데이트 실패:', error);
+        console.error('컬럼 설정 업데이트 실패:', error);
+        toast({
+          title: "저장 실패",
+          description: "서버에 설정을 저장하는데 실패했습니다.",
+          variant: "destructive",
+        });
       }
-      
-      toast({
-        title: "헤더 수정 완료",
-        description: `컬럼 헤더가 "${headerEditValue.trim()}"로 변경되었습니다. (새로고침 후에도 유지됩니다)`,
-        variant: "success",
-      });
     }
     setEditingHeader(null);
     setHeaderEditValue('');
@@ -233,7 +274,7 @@ export default function StudentsPage() {
   };
 
   // 새 컬럼 추가
-  const handleAddColumn = () => {
+  const handleAddColumn = async () => {
     const newField = `custom_${Date.now()}`;
     const newColumn: GridColDef = {
       field: newField,
@@ -263,15 +304,44 @@ export default function StudentsPage() {
       console.error('컬럼 메타데이터 저장 실패:', error);
     }
     
-    toast({
-      title: "컬럼 추가 완료",
-      description: "새로운 컬럼이 추가되었습니다. (새로고침 후에도 유지됩니다)",
-      variant: "success",
-    });
+    // 서버에 컬럼 설정 업데이트
+    try {
+      const newColumnOrder = [...columnOrder, newField];
+      const visibleColumns = [...columns.map(col => col.field), newField];
+      const hiddenColumns: string[] = []; // 숨겨진 컬럼이 있다면 여기에 추가
+      
+      const response = await apiClient.updateColumnSettings('students', {
+        visible_columns: visibleColumns,
+        hidden_columns: hiddenColumns,
+        column_order: newColumnOrder
+      });
+      
+      if (response.success) {
+        setColumnOrder(newColumnOrder);
+        toast({
+          title: "컬럼 추가 완료",
+          description: "새로운 컬럼이 추가되었습니다. (서버에 저장되었습니다)",
+          variant: "success",
+        });
+      } else {
+        toast({
+          title: "저장 실패",
+          description: "서버에 설정을 저장하는데 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('컬럼 설정 업데이트 실패:', error);
+      toast({
+        title: "저장 실패",
+        description: "서버에 설정을 저장하는데 실패했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   // 컬럼 삭제
-  const handleDeleteColumn = (field: string) => {
+  const handleDeleteColumn = async (field: string) => {
     if (field === 'id' || field === 'actions' || field === 'created_at') {
       toast({
         title: "삭제 불가",
@@ -295,11 +365,40 @@ export default function StudentsPage() {
       console.error('컬럼 메타데이터 삭제 실패:', error);
     }
     
-    toast({
-      title: "컬럼 삭제 완료",
-      description: "컬럼이 삭제되었습니다. (새로고침 후에도 유지됩니다)",
-      variant: "success",
-    });
+    // 서버에 컬럼 설정 업데이트
+    try {
+      const newColumnOrder = columnOrder.filter(col => col !== field);
+      const visibleColumns = columns.filter(col => col.field !== field).map(col => col.field);
+      const hiddenColumns: string[] = []; // 숨겨진 컬럼이 있다면 여기에 추가
+      
+      const response = await apiClient.updateColumnSettings('students', {
+        visible_columns: visibleColumns,
+        hidden_columns: hiddenColumns,
+        column_order: newColumnOrder
+      });
+      
+      if (response.success) {
+        setColumnOrder(newColumnOrder);
+        toast({
+          title: "컬럼 삭제 완료",
+          description: "컬럼이 삭제되었습니다. (서버에 저장되었습니다)",
+          variant: "success",
+        });
+      } else {
+        toast({
+          title: "저장 실패",
+          description: "서버에 설정을 저장하는데 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('컬럼 설정 업데이트 실패:', error);
+      toast({
+        title: "저장 실패",
+        description: "서버에 설정을 저장하는데 실패했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   // 새 행 추가
@@ -315,10 +414,10 @@ export default function StudentsPage() {
         tuition_due_date: null  // null은 백엔드에서 허용됨
       };
       
-      console.log('새 학생 생성 데이터:', newStudentData);
+      // console.log('새 학생 생성 데이터:', newStudentData);
       
       const response = await apiClient.createStudent(newStudentData);
-      console.log('새 학생 생성 응답:', response);
+      // console.log('새 학생 생성 응답:', response);
       
       if (response.success) {
         toast({
@@ -345,7 +444,7 @@ export default function StudentsPage() {
 
   // 행 삭제 (선택된 행들)
   const handleDeleteSelectedRows = async (selectedIds: any[]) => {
-    console.log('삭제할 선택된 행들:', selectedIds);
+    // console.log('삭제할 선택된 행들:', selectedIds);
     
     // 배열이 아니거나 길이가 0인 경우
     if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
@@ -365,7 +464,7 @@ export default function StudentsPage() {
       });
       // 선택된 모든 행을 백엔드에서 하드 딜리트
       for (const id of selectedIds) {
-        console.log('하드 딜리트 중인 ID:', id);
+        // console.log('하드 딜리트 중인 ID:', id);
         await apiClient.deleteStudentHard(id);
       }
       toast({
@@ -410,7 +509,7 @@ export default function StudentsPage() {
 
   // 행 선택 변경
   const handleRowSelectionChange = (newSelection: any) => {
-    console.log('행 선택 변경:', newSelection);
+    // console.log('행 선택 변경:', newSelection);
     // newSelection이 Set 객체인 경우 배열로 변환
     if (newSelection && typeof newSelection === 'object' && newSelection.ids) {
       setSelectedRows(Array.from(newSelection.ids));
@@ -478,6 +577,12 @@ export default function StudentsPage() {
     }
   }, [search, students]);
 
+  // 페이지 로드 시 데이터 및 컬럼 설정 로드
+  useEffect(() => {
+    fetchStudents();
+    fetchColumnSettings();
+  }, []);
+
   // 키보드 단축키 처리
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -494,6 +599,33 @@ export default function StudentsPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []); // 의존성 배열을 비워서 무한 루프 방지
+
+  // 서버에서 컬럼 설정 가져오기
+  const fetchColumnSettings = async () => {
+    try {
+      const response = await apiClient.getColumnSettings('students');
+      if (response.success && response.data) {
+        const settings = response.data as any;
+        // 서버 설정을 기반으로 컬럼 순서 업데이트
+        if (settings.column_order && settings.column_order.length > 0) {
+          setColumnOrder(settings.column_order);
+        }
+        // 컬럼 표시/숨김 상태 설정
+        const newVisibility: Record<string, boolean> = {};
+        columns.forEach(col => {
+          if (settings.hidden_columns && settings.hidden_columns.includes(col.field)) {
+            newVisibility[col.field] = false;
+          } else {
+            newVisibility[col.field] = true;
+          }
+        });
+        setColumnVisibility(newVisibility);
+      }
+    } catch (error) {
+      console.error('컬럼 설정 로드 실패:', error);
+      // 실패 시 기본 설정 사용
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -951,7 +1083,7 @@ export default function StudentsPage() {
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
 
-  // 샘플 학생 50명 자동 추가 (임시)
+  // 샘플 학생 50명 자동 추가
   const handleAddSampleStudents = async () => {
     const targetCount = 50;
     if (students.length >= targetCount) {
@@ -959,18 +1091,72 @@ export default function StudentsPage() {
       return;
     }
     const toAdd = targetCount - students.length;
-    const grades = ['1학년', '2학년', '3학년', '4학년'];
+    
+    // 현실적인 한국 학생 이름들
+    const firstNames = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '전'];
+    const lastNames = ['민준', '서준', '도윤', '예준', '시우', '주원', '하준', '지호', '지후', '준서', '준우', '현우', '도현', '지훈', '우진', '민재', '건우', '서진', '현준', '도훈', '지원', '재민', '재현', '재원', '재준'];
+    
+    // 학년별 분포
+    const grades = ['1학년', '2학년', '3학년', '4학년', '5학년', '6학년'];
+    const gradeWeights = [0.15, 0.18, 0.20, 0.22, 0.15, 0.10]; // 학년별 가중치
+    
+    // 수강료 분포 (현실적인 범위)
+    const tuitionRanges = [
+      { min: 300000, max: 400000, weight: 0.2 },  // 30-40만원
+      { min: 400000, max: 500000, weight: 0.3 },  // 40-50만원
+      { min: 500000, max: 600000, weight: 0.25 }, // 50-60만원
+      { min: 600000, max: 700000, weight: 0.15 }, // 60-70만원
+      { min: 700000, max: 800000, weight: 0.1 }   // 70-80만원
+    ];
+    
     for (let i = 0; i < toAdd; i++) {
       const idx = students.length + i + 1;
+      
+      // 랜덤 이름 생성
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+      const fullName = firstName + lastName;
+      
+      // 가중치 기반 학년 선택
+      const random = Math.random();
+      let gradeIndex = 0;
+      let cumulativeWeight = 0;
+      for (let j = 0; j < gradeWeights.length; j++) {
+        cumulativeWeight += gradeWeights[j];
+        if (random <= cumulativeWeight) {
+          gradeIndex = j;
+          break;
+        }
+      }
+      
+      // 가중치 기반 수강료 선택
+      const tuitionRandom = Math.random();
+      let tuitionRange = tuitionRanges[0];
+      cumulativeWeight = 0;
+      for (let j = 0; j < tuitionRanges.length; j++) {
+        cumulativeWeight += tuitionRanges[j].weight;
+        if (tuitionRandom <= cumulativeWeight) {
+          tuitionRange = tuitionRanges[j];
+          break;
+        }
+      }
+      
+      const tuitionFee = Math.floor(Math.random() * (tuitionRange.max - tuitionRange.min + 10000) + tuitionRange.min);
+      
+      // 납부일 (현재 날짜 기준 ±30일)
+      const daysOffset = Math.floor(Math.random() * 61) - 30; // -30일 ~ +30일
+      const dueDate = new Date(Date.now() + daysOffset * 86400000);
+      
       const student = {
-        name: `샘플학생${idx}`,
-        email: `sample${idx}@test.com`,
-        phone: `010-0000-${String(1000 + idx).slice(-4)}`,
-        grade: grades[idx % grades.length],
-        tuition_fee: 500000 + (idx % 5) * 10000,
-        tuition_due_date: new Date(Date.now() + (idx % 30) * 86400000).toISOString().slice(0, 10),
-        is_active: idx % 2 === 0
+        name: fullName,
+        email: `${fullName.toLowerCase()}${idx}@academy.com`,
+        phone: `010-${String(1000 + Math.floor(Math.random() * 9000)).slice(-4)}-${String(1000 + Math.floor(Math.random() * 9000)).slice(-4)}`,
+        grade: grades[gradeIndex],
+        tuition_fee: tuitionFee,
+        tuition_due_date: dueDate.toISOString().slice(0, 10),
+        is_active: Math.random() > 0.15 // 85% 활성, 15% 비활성
       };
+      
       await apiClient.createStudent(student);
     }
     await fetchStudents();
@@ -978,15 +1164,7 @@ export default function StudentsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">학생 관리</h1>
-          <Button disabled>새 학생 등록</Button>
-        </div>
-        <TableRowSkeleton rows={6} />
-      </div>
-    );
+    return <StudentsPageSkeleton />;
   }
 
   return (
@@ -1015,7 +1193,19 @@ export default function StudentsPage() {
                 {students.length > 0 && (
                   <Chip label={`최근 등록: ${students[students.length-1].name}`} sx={{ fontWeight: 500, bgcolor: 'info.50', color: 'info.main', px: 1.5 }} />
                 )}
-                {/* 샘플 학생 추가 버튼 (임시) */}
+                {/* 샘플 학생 추가 버튼 */}
+                <Tooltip title="샘플 학생 50명 추가">
+                  <IconButton 
+                    onClick={handleAddSampleStudents} 
+                    color="info" 
+                    sx={{ 
+                      bgcolor: 'info.50', 
+                      '&:hover': { bgcolor: 'info.100' } 
+                    }}
+                  >
+                    <AddCircle />
+                  </IconButton>
+                </Tooltip>
               </Box>
             </Box>
           </Paper>
@@ -1108,32 +1298,32 @@ export default function StudentsPage() {
                             />
                           </Box>
                         ) : (
-                          <Box 
-                            sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              width: '100%',
-                              minWidth: 0,
-                              maxWidth: '100%',
-                              gap: 0.8,
-                              cursor: 'grab',
-                              '&:active': { cursor: 'grabbing' }
-                            }}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, col.field)}
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, col.field)}
-                          >
-                            <DragIndicator 
-                              fontSize="small" 
-                              sx={{ 
-                                opacity: 0.3, 
-                                flexShrink: 0,
-                                flexGrow: 0,
-                                minWidth: 28,
-                                mr: 0.5
-                              }} 
-                            />
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, maxWidth: '100%', gap: 0.8 }}>
+                            {/* 드래그 핸들 - 별도 영역으로 분리 */}
+                            <Box
+                              sx={{
+                                cursor: 'grab',
+                                '&:active': { cursor: 'grabbing' },
+                                p: 0.5,
+                                borderRadius: 1,
+                                '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' }
+                              }}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, col.field)}
+                              onDragOver={handleDragOver}
+                              onDrop={(e) => handleDrop(e, col.field)}
+                            >
+                              <DragIndicator 
+                                fontSize="small" 
+                                sx={{ 
+                                  opacity: 0.6,
+                                  color: 'text.secondary',
+                                  '&:hover': { opacity: 1 }
+                                }} 
+                              />
+                            </Box>
+                            
+                            {/* 컬럼 제목 */}
                             <span style={{ 
                               flex: '1 1 auto',
                               width: 'auto',
@@ -1228,9 +1418,10 @@ export default function StudentsPage() {
                 disableColumnMenu={true}
 
                 editMode="cell"
-                isCellEditable={(params) => params.field !== 'created_at' && params.field !== 'actions'}
+                isCellEditable={(params) => params.field !== 'created_at' && params.field !== 'actions' && params.field !== '__check__'}
                 onCellClick={(params, event) => {
-                  if (params.field !== 'created_at' && params.field !== 'actions') {
+                  // 체크박스 컬럼이나 편집 불가능한 컬럼은 편집 모드로 전환하지 않음
+                  if (params.field !== 'created_at' && params.field !== 'actions' && params.field !== '__check__') {
                     if (apiRef.current) {
                       apiRef.current.startCellEditMode({ id: params.id, field: params.field });
                     }
@@ -1259,7 +1450,20 @@ export default function StudentsPage() {
                 onSortModelChange={(model) => setSortModel(model)}
                 filterModel={filterModel}
                 columnVisibilityModel={columnVisibility}
-                onColumnVisibilityModelChange={setColumnVisibility}
+                onColumnVisibilityModelChange={(newModel) => {
+                  setColumnVisibility(newModel);
+                  // 서버에 즉시 저장
+                  const visibleColumns = Object.keys(newModel).filter(key => newModel[key] !== false);
+                  const hiddenColumns = Object.keys(newModel).filter(key => newModel[key] === false);
+                  
+                  apiClient.updateColumnSettings('students', {
+                    visible_columns: visibleColumns,
+                    hidden_columns: hiddenColumns,
+                    column_order: columnOrder
+                  }).catch(error => {
+                    console.error('컬럼 설정 업데이트 실패:', error);
+                  });
+                }}
               />
             </Box>
           </Paper>
@@ -1428,11 +1632,66 @@ export default function StudentsPage() {
                 <Box key={col.field} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Checkbox
                     checked={columnVisibility[col.field] !== false}
-                    onChange={(_, checked) => setColumnVisibility(prev => ({ ...prev, [col.field]: checked }))}
+                    onChange={(_, checked) => {
+                      // 임시 상태만 변경 (저장 버튼 클릭 시 서버에 저장)
+                      setColumnVisibility(prev => ({ ...prev, [col.field]: checked }));
+                    }}
                   />
                   <span>{col.headerName}</span>
                 </Box>
               ))}
+            </Box>
+            {/* 저장/취소 버튼 */}
+            <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end' }}>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsColumnPanelOpen(false);
+                  // 원래 상태로 되돌리기
+                  fetchColumnSettings();
+                }}
+              >
+                취소
+              </Button>
+              <Button 
+                variant="default"
+                onClick={async () => {
+                  try {
+                    const visibleColumns = Object.keys(columnVisibility).filter(key => columnVisibility[key] !== false);
+                    const hiddenColumns = Object.keys(columnVisibility).filter(key => columnVisibility[key] === false);
+                    
+                    const response = await apiClient.updateColumnSettings('students', {
+                      visible_columns: visibleColumns,
+                      hidden_columns: hiddenColumns,
+                      column_order: columnOrder
+                    });
+                    
+                    if (response.success) {
+                      toast({
+                        title: "컬럼 설정 저장 완료",
+                        description: "컬럼 표시 설정이 서버에 저장되었습니다.",
+                        variant: "success",
+                      });
+                      setIsColumnPanelOpen(false);
+                    } else {
+                      toast({
+                        title: "저장 실패",
+                        description: "서버에 설정을 저장하는데 실패했습니다.",
+                        variant: "destructive",
+                      });
+                    }
+                  } catch (error) {
+                    console.error('컬럼 설정 업데이트 실패:', error);
+                    toast({
+                      title: "저장 실패",
+                      description: "서버에 설정을 저장하는데 실패했습니다.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                저장
+              </Button>
             </Box>
           </DialogContent>
         </Dialog>
