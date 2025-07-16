@@ -34,4 +34,4 @@ httpx==0.25.2
 watchfiles==1.1.0
 
 # PostgreSQL 드라이버
-psycopg2-binary==2.9.7 
+psycopg2-binary==2.9.10 
