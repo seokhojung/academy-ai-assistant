@@ -31,7 +31,8 @@ class MaterialService:
 
     def create_material(self, material_data: MaterialCreate) -> Material:
         """교재 등록"""
-        material = Material(**material_data.model_dump())
+        # Pydantic v1 호환성을 위해 dict() 사용
+        material = Material(**material_data.dict())
         self.db.add(material)
         self.db.commit()
         self.db.refresh(material)
@@ -43,7 +44,8 @@ class MaterialService:
         if not material:
             return None
         
-        update_data = material_data.model_dump(exclude_unset=True)
+        # Pydantic v1 호환성을 위해 dict() 사용
+        update_data = material_data.dict(exclude_unset=True)
         update_data["updated_at"] = datetime.utcnow()
         
         for field, value in update_data.items():

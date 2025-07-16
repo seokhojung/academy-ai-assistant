@@ -31,7 +31,8 @@ class TeacherService:
 
     def create_teacher(self, teacher_data: TeacherCreate) -> Teacher:
         """강사 등록"""
-        teacher = Teacher(**teacher_data.model_dump())
+        # Pydantic v1 호환성을 위해 dict() 사용
+        teacher = Teacher(**teacher_data.dict())
         self.db.add(teacher)
         self.db.commit()
         self.db.refresh(teacher)
@@ -43,7 +44,8 @@ class TeacherService:
         if not teacher:
             return None
         
-        update_data = teacher_data.model_dump(exclude_unset=True)
+        # Pydantic v1 호환성을 위해 dict() 사용
+        update_data = teacher_data.dict(exclude_unset=True)
         update_data["updated_at"] = datetime.utcnow()
         
         for field, value in update_data.items():
