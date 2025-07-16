@@ -55,6 +55,20 @@
 | **Firebase Auth** | Latest | Google Sign-In | 사용자 인증 |
 | **JWT** | PyJWT | 15분 액세스, 7일 리프레시 | 토큰 기반 인증 |
 
+#### JWT 설정 상세
+- **알고리즘**: HS256 (HMAC SHA-256)
+- **만료 시간**: 15분 (ACCESS_TOKEN_EXPIRE_MINUTES)
+- **리프레시 토큰**: 7일 (REFRESH_TOKEN_EXPIRE_DAYS)
+- **시크릿 키**: 환경 변수 JWT_SECRET_KEY로 관리
+- **토큰 구조**: Header.Payload.Signature
+
+#### Firebase 설정 상세
+- **인증 방식**: Google Sign-In, 이메일/비밀번호
+- **프로젝트 ID**: academy-ai-assistant
+- **웹 앱 등록**: academy-ai-assistant-web
+- **서비스 계정**: Firebase Admin SDK용 비공개 키
+- **보안 규칙**: 인증된 사용자만 접근 허용
+
 ### Storage
 | 기술 | 버전 | 설정 | 용도 |
 |------|------|------|------|
@@ -168,6 +182,18 @@ NEXT_PUBLIC_FIREBASE_CONFIG=your_firebase_config
 - **JWT 토큰**: 짧은 만료 시간 (15분)
 - **리프레시 토큰**: 안전한 갱신 메커니즘
 - **Firebase Auth**: Google의 보안 인프라 활용
+
+#### JWT 보안 특징
+- **Stateless**: 서버가 세션을 저장하지 않음
+- **서명 검증**: HS256 알고리즘으로 토큰 무결성 보장
+- **만료 관리**: 자동 만료로 보안 강화
+- **토큰 검증**: 모든 API 요청에서 유효성 검사
+
+#### Firebase 보안 특징
+- **Google 인프라**: Google의 안전한 인증 시스템 활용
+- **토큰 검증**: Firebase Admin SDK로 서버 측 검증
+- **사용자 관리**: Firebase Console에서 중앙 집중식 관리
+- **다중 인증**: Google, 이메일, 소셜 로그인 지원
 
 ### 데이터 보안
 - **TLS 암호화**: 모든 통신 암호화

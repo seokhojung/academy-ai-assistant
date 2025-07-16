@@ -1,7 +1,7 @@
 // API 클라이언트 설정
 const API_BASE = process.env.NODE_ENV === 'development' 
   ? '/api'  // 개발 환경: 프록시 사용
-  : process.env.NEXT_PUBLIC_API_URL || 'https://your-render-app.onrender.com/api';  // 배포 환경: Render API URL
+  : process.env.NEXT_PUBLIC_API_URL || 'https://academy-ai-assistant.onrender.com';  // 배포 환경: Render API URL
 
 // API 응답 타입
 interface ApiResponse<T = any> {

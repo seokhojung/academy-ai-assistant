@@ -33,27 +33,28 @@ class Settings:
     # CORS - 환경별 설정
     @property
     def allowed_origins(self) -> List[str]:
-        if self.environment == "development":
-            return [
-                "http://localhost:3000",
-                "http://localhost:3001", 
-                "http://localhost:3002",
-                "http://localhost:3003",
-                "http://121.165.240.250:3000",
-                "http://121.165.240.250:3001",
-                "http://121.165.240.250:3002",
-                "http://121.165.240.250:3003",
-            ]
-        elif self.environment == "production":
-            return [
-                "https://academy-ai-assistants.vercel.app",
-                "https://academy-ai-assistant.vercel.app",
-                "https://*.vercel.app",
+        # 모든 환경에서 Vercel 도메인 허용
+        origins = [
+            "http://localhost:3000",
+            "http://localhost:3001", 
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "http://121.165.240.250:3000",
+            "http://121.165.240.250:3001",
+            "http://121.165.240.250:3002",
+            "http://121.165.240.250:3003",
+            "https://academy-ai-assistants.vercel.app",
+            "https://academy-ai-assistant.vercel.app",
+            "https://*.vercel.app",
+        ]
+        
+        if self.environment == "production":
+            origins.extend([
                 "https://your-domain.com",
                 "https://www.your-domain.com",
-            ]
-        else:
-            return []
+            ])
+        
+        return origins
     
     # Debug
     debug: bool = config("DEBUG", default=True, cast=bool)

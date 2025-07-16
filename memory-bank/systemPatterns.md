@@ -107,6 +107,57 @@ graph TB
 - **Role-based ACL**: 학생/강사/관리자 권한 분리
 - **Row-level Lock**: PostgreSQL 행 수준 잠금
 
+### JWT와 Firebase 협력 관계
+
+#### JWT의 역할
+1. **API 보안**: 모든 백엔드 API 요청에 인증 필요
+2. **세션 관리**: 사용자 로그인 상태를 토큰으로 관리
+3. **서버 부하 감소**: 서버가 세션을 저장할 필요 없음 (Stateless)
+
+#### Firebase의 역할
+1. **사용자 인증**: Google 로그인 등 소셜 로그인 제공
+2. **보안 인프라**: Google의 안전한 인증 시스템 활용
+3. **사용자 관리**: Firebase Console에서 사용자 관리
+
+#### 인증 플로우
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Firebase
+    participant Backend
+    participant Database
+
+    User->>Frontend: Google 로그인 클릭
+    Frontend->>Firebase: Google 로그인 요청
+    Firebase->>Frontend: ID 토큰 반환
+    Frontend->>Backend: ID 토큰 전송
+    Backend->>Firebase: 토큰 검증
+    Firebase->>Backend: 사용자 정보 반환
+    Backend->>Database: 사용자 정보 저장/조회
+    Backend->>Frontend: JWT 토큰 발급
+    Frontend->>User: 로그인 완료
+```
+
+#### API 요청 플로우
+```mermaid
+sequenceDiagram
+    participant Frontend
+    participant Backend
+    participant Database
+
+    Frontend->>Backend: API 요청 (JWT 토큰 포함)
+    Backend->>Backend: JWT 토큰 검증
+    Backend->>Database: 사용자 정보 조회
+    Backend->>Frontend: API 응답
+```
+
+#### 토큰 구성 요소
+- **JWT Header**: 알고리즘 정보 (HS256)
+- **JWT Payload**: 사용자 ID, 만료 시간, 발급 시간
+- **JWT Signature**: 서버 비밀키로 서명
+- **Firebase ID Token**: Google에서 발급한 사용자 인증 토큰
+
 ### 데이터 보안
 - **TLS 암호화**: 모든 전송 데이터 암호화
 - **GCS 버전 관리**: 파일 변경 이력 추적

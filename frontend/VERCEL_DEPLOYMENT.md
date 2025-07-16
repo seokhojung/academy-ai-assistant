@@ -20,12 +20,13 @@
 2. 다음 환경 변수 추가:
 
 ```
-NEXT_PUBLIC_API_URL=https://your-render-app.onrender.com/api
+NEXT_PUBLIC_API_URL=https://academy-ai-assistant.onrender.com
 ```
 
 ### 2.2 실제 Render URL로 변경
 - `your-render-app.onrender.com`을 실제 Render 배포 URL로 변경
-- 예: `academy-ai-assistant-backend.onrender.com`
+- 예: `academy-ai-assistant.onrender.com`
+- **중요**: URL 끝에 `/api`를 추가하지 마세요. 프론트엔드에서 자동으로 추가합니다.
 
 ## 3. 배포 설정
 
@@ -78,6 +79,12 @@ NEXT_PUBLIC_API_URL=https://your-render-app.onrender.com/api
 - 환경 변수 `NEXT_PUBLIC_API_URL` 확인
 - Render 백엔드 서버 상태 확인
 - CORS 설정 확인
+
+### 6.3 CORS 오류 해결
+- Vercel 환경 변수 `NEXT_PUBLIC_API_URL=https://academy-ai-assistant.onrender.com` 설정
+- 프론트엔드 재배포
+- 브라우저 캐시 삭제
+- Render 백엔드에서 Vercel 도메인 허용 확인
 
 ### 6.3 성능 최적화
 - Vercel Analytics 활성화
