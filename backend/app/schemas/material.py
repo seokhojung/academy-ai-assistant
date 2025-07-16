@@ -29,7 +29,7 @@ class MaterialResponse(MaterialBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class MaterialListResponse(BaseModel):
     materials: list[MaterialResponse]

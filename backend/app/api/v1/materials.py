@@ -39,7 +39,7 @@ def create_material(
     current_user = Depends(AuthService.get_current_active_user)
 ):
     """새로운 교재를 등록합니다."""
-    db_material = Material.model_validate(material)
+    db_material = Material.from_orm(material)
     session.add(db_material)
     session.commit()
     session.refresh(db_material)

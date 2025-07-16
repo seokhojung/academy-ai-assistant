@@ -31,7 +31,7 @@ class TeacherResponse(TeacherBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class TeacherListResponse(BaseModel):

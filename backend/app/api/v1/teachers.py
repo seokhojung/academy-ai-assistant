@@ -39,7 +39,7 @@ def create_teacher(
     current_user = Depends(AuthService.get_current_active_user)
 ):
     """새로운 강사를 등록합니다."""
-    db_teacher = Teacher.model_validate(teacher)
+    db_teacher = Teacher.from_orm(teacher)
     session.add(db_teacher)
     session.commit()
     session.refresh(db_teacher)

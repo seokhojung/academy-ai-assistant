@@ -27,7 +27,7 @@ def get_students(
     total = service.count_students(is_active=is_active)
     
     return StudentListResponse(
-        students=[StudentResponse.model_validate(s) for s in students],
+        students=[StudentResponse.from_orm(s) for s in students],
         total=total,
         page=skip // limit + 1,
         size=limit
@@ -43,7 +43,7 @@ def get_student(student_id: int, db: Session = Depends(get_session)):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     
-    return StudentResponse.model_validate(student)
+    return StudentResponse.from_orm(student)
 
 
 @router.post("/", response_model=StudentResponse, status_code=201)
@@ -59,7 +59,7 @@ def create_student(student_data: StudentCreate, db: Session = Depends(get_sessio
     
     student = service.create_student(student_data)
     print(f"생성된 학생: {student}")
-    return StudentResponse.model_validate(student)
+    return StudentResponse.from_orm(student)
 
 
 @router.put("/{student_id}", response_model=StudentResponse)
@@ -82,7 +82,7 @@ def update_student(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     
-    return StudentResponse.model_validate(student)
+    return StudentResponse.from_orm(student)
 
 
 @router.delete("/{student_id}", status_code=204)
