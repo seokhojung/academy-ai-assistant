@@ -62,15 +62,15 @@ export default function DashboardPage() {
       // 실제 DB 데이터로 통계 설정
       setStats({
         students: studentsData.total || studentsData.students?.length || 0,
-        teachers: teachersData.length || 0,
-        materials: materialsData.length || 0,
+        teachers: teachersData.total || teachersData.teachers?.length || teachersData.length || 0,
+        materials: materialsData.total || materialsData.materials?.length || materialsData.length || 0,
         activeCourses: lecturesData.total || lecturesData.lectures?.length || 0
       });
 
       console.log('실제 DB 통계:', {
         students: studentsData.total || studentsData.students?.length || 0,
-        teachers: teachersData.length || 0,
-        materials: materialsData.length || 0,
+        teachers: teachersData.total || teachersData.teachers?.length || teachersData.length || 0,
+        materials: materialsData.total || materialsData.materials?.length || materialsData.length || 0,
         activeCourses: lecturesData.total || lecturesData.lectures?.length || 0
       });
 

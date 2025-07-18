@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import DataManagementTable from "../../src/components/data-management/DataManagementTable";
 import { GridColDef } from "@mui/x-data-grid";
 import { School } from "@mui/icons-material";
+import { useHistoryManager } from "../../src/hooks/useHistoryManager";
+import { EditEntityCommand, AddEntityCommand, DeleteEntityCommand } from "../../src/commands";
+import { apiClient } from "../../src/lib/api-client";
 
 interface Lecture {
   id: number;
@@ -26,6 +29,9 @@ interface Lecture {
 export default function LecturesPage() {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 히스토리 관리자 사용
+  const { executeCommand } = useHistoryManager();
 
   useEffect(() => {
     fetchLectures();
@@ -34,14 +40,9 @@ export default function LecturesPage() {
   const fetchLectures = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/api/v1/lectures/");
-      if (response.ok) {
-        const data = await response.json();
-        const lecturesData = data.lectures || data;
-        setLectures(Array.isArray(lecturesData) ? lecturesData : []);
-      } else {
-        setLectures([]);
-      }
+      const data = await apiClient.getEntities('lectures') as any;
+      const lecturesData = data.lectures || data;
+      setLectures(Array.isArray(lecturesData) ? lecturesData : []);
     } catch (error) {
       console.error('강의 데이터 로드 실패:', error);
       setLectures([]);
@@ -64,22 +65,30 @@ export default function LecturesPage() {
     { field: "created_at", headerName: "등록일", width: 140, editable: false }
   ];
 
-  // CRUD 함수
+  // CRUD 함수 - Command Pattern 기반
   const handleRowUpdate = async (newRow: any, oldRow: any) => {
     try {
-      const updateData = { ...newRow, is_active: newRow.is_active === "활성" };
-      const response = await fetch(`http://localhost:8000/api/v1/lectures/${newRow.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
-      });
-      if (response.ok) {
-        fetchLectures();
-        return newRow;
-      } else {
-        throw new Error("업데이트 실패");
-      }
+      // Command Pattern을 사용하여 편집 히스토리 관리
+      const editCommand = new EditEntityCommand(
+        'lectures',
+        newRow.id,
+        oldRow,
+        newRow, // EditEntityCommand에서 데이터 검증 및 변환 처리
+        apiClient,
+        (data) => {
+          // 로컬 상태 업데이트
+          setLectures(prev => 
+            prev.map(lecture => 
+              lecture.id === newRow.id ? data : lecture
+            )
+          );
+        }
+      );
+      
+      await executeCommand(editCommand);
+      return newRow;
     } catch (e) {
+      console.error('업데이트 오류:', e);
       return oldRow;
     }
   };
@@ -87,27 +96,70 @@ export default function LecturesPage() {
   const handleAddRow = async () => {
     const newLecture = {
       title: "새 강의",
-      subject: "",
-      grade: "",
+      subject: null,  // 빈 문자열 대신 null 사용
+      grade: null,    // 빈 문자열 대신 null 사용
       max_students: 20,
       current_students: 0,
       tuition_fee: 0,
-      schedule: "",
-      classroom: "",
+      schedule: null, // 빈 문자열 대신 null 사용
+      classroom: null, // 빈 문자열 대신 null 사용
       is_active: true,
-      description: ""
+      description: null // 빈 문자열 대신 null 사용
     };
-    await fetch("http://localhost:8000/api/v1/lectures/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newLecture),
-    });
-    fetchLectures();
+    
+    try {
+      // Command Pattern을 사용하여 추가 히스토리 관리
+      const addCommand = new AddEntityCommand(
+        'lectures',
+        newLecture,
+        apiClient,
+        (data) => {
+          // 로컬 상태에 추가 (최신순으로 맨 위에)
+          setLectures(prev => [data, ...prev]);
+        },
+        (id) => {
+          // 로컬 상태에서 제거
+          setLectures(prev => prev.filter(lecture => lecture.id !== id));
+        }
+      );
+      
+      await executeCommand(addCommand);
+    } catch (error) {
+      console.error('추가 오류:', error);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      alert(`새 강의 추가 중 오류가 발생했습니다: ${errorMessage}`);
+    }
   };
 
   const handleDeleteRow = async (id: number) => {
-    await fetch(`http://localhost:8000/api/v1/lectures/${id}`, { method: "DELETE" });
-    fetchLectures();
+    try {
+      // 삭제할 강의 데이터 찾기
+      const lectureToDelete = lectures.find(lecture => lecture.id === id);
+      if (!lectureToDelete) {
+        throw new Error("삭제할 강의를 찾을 수 없습니다.");
+      }
+
+      // Command Pattern을 사용하여 삭제 히스토리 관리
+      const deleteCommand = new DeleteEntityCommand(
+        'lectures',
+        id,
+        lectureToDelete,
+        apiClient,
+        (id) => {
+          // 로컬 상태에서 제거
+          setLectures(prev => prev.filter(lecture => lecture.id !== id));
+        },
+        (data) => {
+          // 로컬 상태에 추가 (복구 시)
+          setLectures(prev => [data, ...prev]);
+        }
+      );
+      
+      await executeCommand(deleteCommand);
+    } catch (error) {
+      console.error('삭제 오류:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
   };
 
   // 통계 정보 계산

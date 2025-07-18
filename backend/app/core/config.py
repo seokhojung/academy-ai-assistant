@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 class Settings:
     # Environment
-    environment: str = config("ENVIRONMENT", default="development")
+    environment: str = str(config("ENVIRONMENT", default="development"))
     
     # Database
-    database_url: str = config("DATABASE_URL", default="sqlite:///./academy.db")
+    database_url: str = str(config("DATABASE_URL", default="sqlite:///./academy.db"))
     
     # 로컬 개발 시 SQLite 사용
     @property
@@ -19,23 +19,23 @@ class Settings:
         return self.database_url
     
     # Redis (Celery 브로커)
-    redis_url: str = config("REDIS_URL", default="redis://localhost:6379")
+    redis_url: str = str(config("REDIS_URL", default="redis://localhost:6379"))
     
     # JWT
-    jwt_secret_key: str = config("JWT_SECRET_KEY", default="your-super-secret-jwt-key-change-in-production")
-    jwt_algorithm: str = config("JWT_ALGORITHM", default="HS256")
+    jwt_secret_key: str = str(config("JWT_SECRET_KEY", default="your-super-secret-jwt-key-change-in-production"))
+    jwt_algorithm: str = str(config("JWT_ALGORITHM", default="HS256"))
     access_token_expire_minutes: int = config("ACCESS_TOKEN_EXPIRE_MINUTES", default=30, cast=int)
     
     # Firebase
-    firebase_api_key: str = config("FIREBASE_API_KEY", default="")
-    firebase_project_id: str = config("FIREBASE_PROJECT_ID", default="")
+    firebase_api_key: str = str(config("FIREBASE_API_KEY", default=""))
+    firebase_project_id: str = str(config("FIREBASE_PROJECT_ID", default=""))
     
     # Gemini API
-    gemini_api_key: str = config("GEMINI_API_KEY", default="your-gemini-api-key")
+    gemini_api_key: str = str(config("GEMINI_API_KEY", default="your-gemini-api-key"))
     
     # Google Cloud Storage
-    gcs_bucket_name: str = config("GCS_BUCKET_NAME", default="academy-ai-assistant-files")
-    gcs_credentials_path: str = config("GCS_CREDENTIALS_PATH", default="path/to/service-account-key.json")
+    gcs_bucket_name: str = str(config("GCS_BUCKET_NAME", default="academy-ai-assistant-files"))
+    gcs_credentials_path: str = str(config("GCS_CREDENTIALS_PATH", default="path/to/service-account-key.json"))
     
     # CORS - 환경별 설정
     @property

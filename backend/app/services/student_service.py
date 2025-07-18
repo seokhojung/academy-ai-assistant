@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, desc
 from typing import Optional
 from datetime import datetime
 
@@ -22,6 +22,8 @@ class StudentService:
         if is_active is not None:
             query = query.where(Student.is_active == is_active)
         
+        # 최신 생성 순으로 정렬 (created_at 내림차순)
+        query = query.order_by(desc(Student.created_at))
         query = query.offset(skip).limit(limit)
         return list(self.db.exec(query).all())
 

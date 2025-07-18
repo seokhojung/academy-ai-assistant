@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, desc
 from typing import Optional
 from datetime import datetime
 
@@ -22,6 +22,8 @@ class TeacherService:
         if is_active is not None:
             query = query.where(Teacher.is_active == is_active)
         
+        # 최신 생성 순으로 정렬 (created_at 내림차순)
+        query = query.order_by(desc(Teacher.created_at))
         query = query.offset(skip).limit(limit)
         return list(self.db.exec(query).all())
 
@@ -66,6 +68,15 @@ class TeacherService:
         teacher.updated_at = datetime.utcnow()
         
         self.db.add(teacher)
+        self.db.commit()
+        return True
+
+    def hard_delete_teacher(self, teacher_id: int) -> bool:
+        """강사 완전 삭제 (하드 딜리트)"""
+        teacher = self.db.get(Teacher, teacher_id)
+        if not teacher:
+            return False
+        self.db.delete(teacher)
         self.db.commit()
         return True
 

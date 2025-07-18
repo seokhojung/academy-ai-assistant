@@ -4,11 +4,18 @@ from datetime import datetime
 
 class MaterialBase(BaseModel):
     name: str
+    subject: str
+    grade: str
     description: Optional[str] = None
     price: float
     publisher: Optional[str] = None
     author: Optional[str] = None
-    stock: Optional[int] = 0
+    isbn: Optional[str] = None
+    quantity: Optional[int] = 0
+    min_quantity: Optional[int] = 5
+    publication_date: Optional[datetime] = None
+    edition: Optional[str] = None
+    expiry_date: Optional[datetime] = None
     is_active: Optional[bool] = True
 
 class MaterialCreate(MaterialBase):
@@ -16,11 +23,18 @@ class MaterialCreate(MaterialBase):
 
 class MaterialUpdate(BaseModel):
     name: Optional[str] = None
+    subject: Optional[str] = None
+    grade: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
     publisher: Optional[str] = None
     author: Optional[str] = None
-    stock: Optional[int] = None
+    isbn: Optional[str] = None
+    quantity: Optional[int] = None
+    min_quantity: Optional[int] = None
+    publication_date: Optional[datetime] = None
+    edition: Optional[str] = None
+    expiry_date: Optional[datetime] = None
     is_active: Optional[bool] = None
 
 class MaterialResponse(MaterialBase):

@@ -1,326 +1,160 @@
-# Academy AI Assistant - 사용자 및 개발자 흐름도
+# User-Developer Flow
 
-## 사용자 흐름도
+## 🚨 **체계적 디버깅 워크플로우 (MANDATORY)**
 
-### 전체 기술 스택 관계도
+### **문제 발생 시 즉시 실행 체크리스트**
 
-```mermaid
-graph TB
-    %% 사용자 레이어
-    User[👤 사용자]
-    
-    %% 프론트엔드 레이어
-    subgraph "Frontend (Vercel)"
-        Vercel[🌐 Vercel 호스팅]
-        NextJS[⚛️ Next.js 14]
-        React[⚛️ React 18]
-        MUI[🎨 MUI DataGrid]
-        TypeScript[📘 TypeScript]
-    end
-    
-    %% 백엔드 레이어
-    subgraph "Backend (Render)"
-        Render[🚀 Render 호스팅]
-        FastAPI[🐍 FastAPI]
-        Python[🐍 Python 3.11]
-        SQLModel[🗄️ SQLModel]
-        SQLAlchemy[🗄️ SQLAlchemy 2.0]
-    end
-    
-    %% 데이터베이스 레이어
-    subgraph "Database (Render)"
-        PostgreSQL[🐘 PostgreSQL 16]
-        RenderDB[🗄️ Render PostgreSQL]
-    end
-    
-    %% 외부 서비스 레이어
-    subgraph "External Services"
-        GitHub[📚 GitHub Repository]
-        Firebase[🔥 Firebase Auth]
-        Gemini[🤖 Google Gemini AI]
-        GCS[☁️ Google Cloud Storage]
-        Redis[🔴 Redis (Celery)]
-    end
-    
-    %% 개발 도구 레이어
-    subgraph "Development Tools"
-        Git[📝 Git Version Control]
-        Docker[🐳 Docker]
-        Nginx[🌐 Nginx Proxy]
-    end
-    
-    %% 연결 관계
-    User --> Vercel
-    Vercel --> NextJS
-    NextJS --> React
-    React --> MUI
-    MUI --> TypeScript
-    
-    Vercel --> Render
-    Render --> FastAPI
-    FastAPI --> Python
-    Python --> SQLModel
-    SQLModel --> SQLAlchemy
-    SQLAlchemy --> PostgreSQL
-    PostgreSQL --> RenderDB
-    
-    FastAPI --> Firebase
-    FastAPI --> Gemini
-    FastAPI --> GCS
-    FastAPI --> Redis
-    
-    GitHub --> Vercel
-    GitHub --> Render
-    
-    Git --> GitHub
-    
-    %% 스타일링
-    classDef frontend fill:#61dafb,stroke:#333,stroke-width:2px
-    classDef backend fill:#ff6b6b,stroke:#333,stroke-width:2px
-    classDef database fill:#4ecdc4,stroke:#333,stroke-width:2px
-    classDef external fill:#ffe66d,stroke:#333,stroke-width:2px
-    classDef tools fill:#a8e6cf,stroke:#333,stroke-width:2px
-    
-    class Vercel,NextJS,React,MUI,TypeScript frontend
-    class Render,FastAPI,Python,SQLModel,SQLAlchemy backend
-    class PostgreSQL,RenderDB database
-    class Firebase,Gemini,GCS,Redis external
-    class GitHub,Git,Docker,Nginx tools
+#### **1단계: 문제 진단 (MANDATORY)**
+```
+□ 메모리 뱅크 확인 (현재 시스템 상태 파악)
+□ 문제의 정확한 증상 파악
+□ 재현 조건 명확히 정의
+□ 영향 범위 분석
+□ 근본 원인 추정
 ```
 
-### 사용자 데이터 흐름 시퀀스
-
-```mermaid
-sequenceDiagram
-    participant U as 사용자
-    participant V as Vercel (Frontend)
-    participant R as Render (Backend)
-    participant P as PostgreSQL
-    participant F as Firebase
-    participant G as Gemini AI
-    
-    U->>V: 웹사이트 접속
-    V->>F: 사용자 인증 확인
-    F-->>V: 인증 결과
-    V->>R: API 요청 (학생 목록)
-    R->>P: 데이터베이스 쿼리
-    P-->>R: 데이터 반환
-    R-->>V: JSON 응답
-    V-->>U: 화면 렌더링
-    
-    U->>V: 엑셀 데이터 수정
-    V->>R: 수정된 데이터 전송
-    R->>P: 데이터베이스 업데이트
-    P-->>R: 업데이트 완료
-    R-->>V: 성공 응답
-    V-->>U: 수정 완료 표시
-    
-    U->>V: AI 챗봇 질문
-    V->>R: 챗봇 API 호출
-    R->>G: Gemini AI 요청
-    G-->>R: AI 응답
-    R-->>V: 챗봇 응답
-    V-->>U: AI 답변 표시
+#### **2단계: 해결책 설계 (MANDATORY)**
 ```
+□ 이 수정이 임시인가 근본적인가?
+□ 다른 기능에 미치는 영향은?
+□ 6개월 후에도 유지보수하기 쉬운가?
+□ 프로젝트 아키텍처와 일치하는가?
+□ 테스트 가능한 구조인가?
+```
+
+#### **3단계: 구현 및 검증 (MANDATORY)**
+```
+□ 기능이 정상 동작하는가?
+□ 다른 기능을 깨뜨리지 않는가?
+□ 성능에 문제가 없는가?
+□ 코드가 이해하기 쉬운가?
+□ 메모리 뱅크에 업데이트했는가?
+```
+
+### **실수 발생 시 해명 프로세스**
+
+#### **즉시 실행**
+1. **작업 중단**: 즉시 현재 작업 중단
+2. **메모리 뱅크 기록**: 실수 상황 상세 기록
+3. **근본 원인 분석**: 왜 실수가 발생했는지 분석
+4. **해결책 구현**: 근본적 해결책 구현
+5. **검증 및 테스트**: 완전한 검증 수행
+6. **재발 방지책**: 동일한 실수 재발 방지책 수립
+7. **팀 공유**: 실수와 교훈을 팀 전체가 공유
+
+#### **실수 유형별 대응**
+- **코드 실수**: 즉시 롤백, 원인 분석, 테스트 추가
+- **아키텍처 실수**: 전체 시스템 영향도 분석, 점진적 수정
+- **성능 실수**: 성능 측정, 병목 지점 분석, 최적화
+- **보안 실수**: 즉시 패치, 취약점 스캔, 보안 강화
 
 ## 개발자 워크플로우
 
-### 개발자 워크플로우 관계도
+### **일일 개발 루틴**
 
-```mermaid
-graph TB
-    %% 개발자 레이어
-    Dev[👨‍💻 개발자]
-    
-    %% 로컬 개발 환경
-    subgraph "Local Development"
-        LocalBackend[🐍 로컬 백엔드<br/>FastAPI + SQLite]
-        LocalFrontend[⚛️ 로컬 프론트엔드<br/>Next.js + React]
-        LocalDB[🗄️ 로컬 SQLite DB]
-        LocalGit[📝 로컬 Git]
-    end
-    
-    %% 코드 저장소
-    subgraph "Code Repository"
-        GitHub[📚 GitHub Repository]
-        MainBranch[🌿 main 브랜치]
-        FeatureBranch[🌿 feature 브랜치]
-    end
-    
-    %% CI/CD 파이프라인
-    subgraph "CI/CD Pipeline"
-        GitHubActions[⚡ GitHub Actions<br/>(선택사항)]
-        AutoDeploy[🚀 자동 배포]
-    end
-    
-    %% 클라우드 서비스
-    subgraph "Cloud Services"
-        Vercel[🌐 Vercel<br/>Frontend Hosting]
-        Render[🚀 Render<br/>Backend Hosting]
-        RenderDB[🐘 Render PostgreSQL]
-    end
-    
-    %% 개발 도구
-    subgraph "Development Tools"
-        VS Code[💻 VS Code / Cursor]
-        Terminal[💻 Terminal]
-        Browser[🌐 Browser DevTools]
-        Postman[📡 Postman / Insomnia]
-    end
-    
-    %% 연결 관계
-    Dev --> LocalBackend
-    Dev --> LocalFrontend
-    Dev --> LocalDB
-    Dev --> LocalGit
-    
-    LocalGit --> GitHub
-    GitHub --> MainBranch
-    GitHub --> FeatureBranch
-    
-    GitHub --> AutoDeploy
-    AutoDeploy --> Vercel
-    AutoDeploy --> Render
-    Render --> RenderDB
-    
-    Dev --> VS Code
-    Dev --> Terminal
-    Dev --> Browser
-    Dev --> Postman
-    
-    VS Code --> LocalBackend
-    VS Code --> LocalFrontend
-    Terminal --> LocalBackend
-    Terminal --> LocalFrontend
-    Browser --> LocalFrontend
-    Postman --> LocalBackend
-    
-    %% 스타일링
-    classDef developer fill:#ff9999,stroke:#333,stroke-width:2px
-    classDef local fill:#99ccff,stroke:#333,stroke-width:2px
-    classDef cloud fill:#99ff99,stroke:#333,stroke-width:2px
-    classDef tools fill:#ffcc99,stroke:#333,stroke-width:2px
-    classDef repo fill:#cc99ff,stroke:#333,stroke-width:2px
-    
-    class Dev developer
-    class LocalBackend,LocalFrontend,LocalDB,LocalGit local
-    class Vercel,Render,RenderDB cloud
-    class VS Code,Terminal,Browser,Postman tools
-    class GitHub,MainBranch,FeatureBranch repo
-```
+#### **시작 전 (매일)**
+1. **메모리 뱅크 확인**: 현재 프로젝트 상태 파악
+2. **전일 작업 리뷰**: 완료된 작업과 남은 작업 확인
+3. **우선순위 설정**: 오늘의 작업 우선순위 결정
+4. **환경 점검**: 개발 환경 정상 동작 확인
 
-### 개발자 워크플로우 시퀀스
+#### **개발 중**
+1. **체계적 접근**: 모든 문제에 체계적 디버깅 전략 적용
+2. **임시 수정 금지**: 근본적 해결책만 구현
+3. **정기적 커밋**: 의미 있는 단위로 정기적 커밋
+4. **문서화**: 중요한 결정사항 메모리 뱅크에 기록
 
-```mermaid
-sequenceDiagram
-    participant Dev as 개발자
-    participant Local as 로컬 환경
-    participant Git as Git
-    participant GitHub as GitHub
-    participant Vercel as Vercel
-    participant Render as Render
-    participant DB as PostgreSQL
-    
-    %% 개발 시작
-    Dev->>Local: 1. 로컬 개발 환경 설정
-    Local->>Dev: 환경 준비 완료
-    
-    %% 백엔드 개발
-    Dev->>Local: 2. 백엔드 코드 수정
-    Local->>Dev: 로컬 테스트 완료
-    
-    %% 프론트엔드 개발
-    Dev->>Local: 3. 프론트엔드 코드 수정
-    Local->>Dev: 로컬 테스트 완료
-    
-    %% 통합 테스트
-    Dev->>Local: 4. 전체 기능 테스트
-    Local->>Dev: 테스트 완료
-    
-    %% 코드 커밋
-    Dev->>Git: 5. Git 커밋
-    Git->>Dev: 커밋 완료
-    
-    %% GitHub 푸시
-    Dev->>GitHub: 6. GitHub 푸시
-    GitHub->>Dev: 푸시 완료
-    
-    %% 자동 배포 트리거
-    GitHub->>Vercel: 7. Vercel 자동 배포 트리거
-    GitHub->>Render: 8. Render 자동 배포 트리거
-    
-    %% 배포 프로세스
-    Vercel->>Vercel: 9. 프론트엔드 빌드 & 배포
-    Render->>Render: 10. 백엔드 의존성 설치
-    Render->>DB: 11. 데이터베이스 연결 테스트
-    Render->>Render: 12. 애플리케이션 시작
-    
-    %% 배포 완료
-    Vercel->>Dev: 13. 프론트엔드 배포 완료
-    Render->>Dev: 14. 백엔드 배포 완료
-    
-    %% 프로덕션 테스트
-    Dev->>Vercel: 15. 프로덕션 환경 테스트
-    Vercel->>Render: 16. API 호출
-    Render->>DB: 17. 데이터베이스 쿼리
-    DB->>Render: 18. 데이터 반환
-    Render->>Vercel: 19. API 응답
-    Vercel->>Dev: 20. 테스트 완료
-```
+#### **종료 전 (매일)**
+1. **작업 정리**: 완료된 작업과 진행 상황 정리
+2. **메모리 뱅크 업데이트**: 오늘의 작업 내용 반영
+3. **다음 날 계획**: 내일의 작업 계획 수립
+4. **코드 리뷰**: 오늘 작성한 코드 품질 점검
 
-## 메모리 뱅크 계획과의 일치도
+### **주간 개발 루틴**
 
-### ✅ 완벽하게 일치하는 부분 (95%)
+#### **월요일: 주간 계획**
+1. **메모리 뱅크 전체 리뷰**: 프로젝트 전체 상태 파악
+2. **주간 목표 설정**: 이번 주 달성할 목표 설정
+3. **우선순위 조정**: 전체 프로젝트 관점에서 우선순위 조정
+4. **리소스 할당**: 시간과 에너지 배분 계획
 
-1. **기술 스택**: FastAPI + Next.js + PostgreSQL
-2. **호스팅 구조**: Vercel + Render
-3. **개발 워크플로우**: Git → GitHub → 자동 배포
-4. **사용자 경험**: 웹 기반 관리 시스템
-5. **데이터베이스**: PostgreSQL 마이그레이션 완료
+#### **수요일: 중간 점검**
+1. **진행 상황 점검**: 주간 목표 달성도 확인
+2. **문제점 식별**: 발생한 문제점과 해결책 검토
+3. **계획 조정**: 필요시 주간 계획 조정
+4. **품질 점검**: 코드 품질과 아키텍처 일관성 확인
 
-### ⚠️ 부분적으로 일치하는 부분 (30-40%)
+#### **금요일: 주간 마무리**
+1. **주간 성과 정리**: 이번 주 완료된 작업 정리
+2. **문제점 분석**: 발생한 문제점과 교훈 분석
+3. **메모리 뱅크 업데이트**: 주간 경험과 학습 내용 반영
+4. **다음 주 계획**: 다음 주 작업 계획 수립
 
-1. **AI 자연어 관리**: 기본 CRUD만 구현, AI 기능 미구현
-2. **Excel Rebuilder**: 기본 파일 관리만 구현
-3. **모바일 PWA**: 반응형 웹만 구현
+### **월간 개발 루틴**
 
-### ❌ 아직 구현되지 않은 부분 (15-20%)
+#### **월초: 월간 계획**
+1. **프로젝트 전체 리뷰**: 전체 프로젝트 진행 상황 파악
+2. **목표 재검토**: 월간 목표와 전체 프로젝트 목표 일치성 확인
+3. **리소스 재할당**: 월간 리소스 배분 계획
+4. **리스크 관리**: 예상되는 리스크와 대응책 수립
 
-1. **고급 UI 컴포넌트**: Storybook, Chromatic
-2. **실시간 기능**: SSE, 실시간 대시보드
-3. **고급 보안**: Role-based ACL, PITR
+#### **월말: 월간 마무리**
+1. **월간 성과 분석**: 이번 달 달성한 성과 분석
+2. **문제점 패턴 분석**: 반복되는 문제점과 해결책 검토
+3. **프로세스 개선**: 개발 프로세스 개선점 도출
+4. **다음 달 계획**: 다음 달 목표와 계획 수립
 
-## 현재 진행도 요약
+## 사용자 워크플로우
 
-| 영역 | 계획 대비 진행도 | 상태 |
-|------|------------------|------|
-| **기본 인프라** | 95% | ✅ 완료 |
-| **사용자 흐름도** | 90% | ✅ 완료 |
-| **개발자 워크플로우** | 95% | ✅ 완료 |
-| **데이터베이스** | 85% | ✅ 완료 |
-| **AI 기능** | 30% | ⏳ 대기 |
-| **Excel 관리** | 20% | ⏳ 대기 |
-| **모바일 PWA** | 15% | ⏳ 대기 |
-| **고급 UI** | 40% | 🔄 부분 완료 |
+### **일반 사용자**
 
-## 다음 단계 우선순위
+#### **로그인 및 기본 사용**
+1. **로그인**: Firebase Auth를 통한 안전한 로그인
+2. **대시보드 확인**: 전체 시스템 상태 파악
+3. **기본 기능 사용**: 학생, 강사, 교재, 강의 관리
 
-### 1순위: AI 자연어 기능 (현재 진행 중)
-- Gemini AI 자연어 파서 구현
-- 자연어 명령 처리 시스템
-- 실시간 AI 채팅 기능
+#### **고급 기능 사용**
+1. **Excel 미리보기**: 업로드된 Excel 파일 미리보기
+2. **AI 채팅**: 자연어로 데이터 관리
+3. **데이터 편집**: 실시간 데이터 편집 및 저장
 
-### 2순위: Excel Rebuilder 시스템
-- Excel 파일 자동 재생성
-- 버전 관리 시스템
-- 파일 업로드/다운로드 개선
+### **관리자**
 
-### 3순위: 모바일 PWA
-- QR 체크인 기능
-- 바코드 스캔 기능
-- 오프라인 지원
+#### **시스템 관리**
+1. **사용자 관리**: 사용자 권한 및 접근 관리
+2. **데이터 백업**: 정기적인 데이터 백업
+3. **시스템 모니터링**: 성능 및 에러 모니터링
 
-### 4순위: 고급 UI/UX
-- Storybook Design System
-- 실시간 대시보드
-- 고급 차트 및 분석 
+#### **고급 설정**
+1. **컬럼 설정**: 데이터 테이블 컬럼 커스터마이징
+2. **권한 설정**: 세부적인 권한 관리
+3. **시스템 설정**: 전체 시스템 설정 관리
+
+## 통합 워크플로우
+
+### **개발-사용자 연계**
+
+#### **피드백 수집**
+1. **사용자 피드백**: 실제 사용 중 발생하는 문제 수집
+2. **성능 모니터링**: 사용자 경험 관련 성능 데이터 수집
+3. **에러 추적**: 사용 중 발생하는 에러 추적
+
+#### **개선 반영**
+1. **우선순위 설정**: 사용자 피드백 기반 우선순위 설정
+2. **체계적 해결**: 체계적 디버깅 전략으로 문제 해결
+3. **사용자 테스트**: 개선된 기능 사용자 테스트
+4. **배포 및 모니터링**: 안전한 배포 및 지속적 모니터링
+
+### **품질 관리**
+
+#### **지속적 개선**
+1. **정기적 리뷰**: 주간/월간 코드 품질 리뷰
+2. **성능 최적화**: 정기적인 성능 프로파일링
+3. **보안 강화**: 정기적인 보안 취약점 점검
+4. **사용자 경험 개선**: 지속적인 UX 개선
+
+#### **문서화 및 지식 관리**
+1. **메모리 뱅크 유지**: 지속적인 문서 업데이트
+2. **베스트 프랙티스**: 좋은 해결 방법 패턴화
+3. **팀 지식 공유**: 팀 전체의 지식 수준 향상
+4. **학습 문화**: 지속적인 학습과 개선 문화 조성 

@@ -2,6 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
 from .core.database import create_db_and_tables
+import sys
+import os
+
+# 로깅 설정 추가
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from logging_config import setup_logging
+
+# 로깅 초기화
+logger = setup_logging()
 
 # Create FastAPI app
 app = FastAPI(
@@ -24,7 +33,9 @@ app.add_middleware(
         "Accept",
         "Origin",
         "Access-Control-Request-Method",
-        "Access-Control-Request-Headers"
+        "Access-Control-Request-Headers",
+        "Cache-Control",
+        "Pragma"
     ],
     expose_headers=["Content-Length", "X-Total-Count"],
     max_age=3600,  # CORS preflight cache (1 hour)
@@ -65,4 +76,22 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy"} 
+    from .core.database import get_session
+    from sqlmodel import Session
+    
+    try:
+        # 데이터베이스 연결 확인
+        from sqlalchemy import text
+        session = next(get_session())
+        session.execute(text("SELECT 1"))
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    
+    return {
+        "status": "healthy",
+        "timestamp": "2024-12-19T10:00:00Z",
+        "version": "1.0.0",
+        "database": db_status,
+        "environment": settings.environment
+    } 

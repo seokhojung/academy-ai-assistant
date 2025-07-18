@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, desc
 from typing import Optional
 from datetime import datetime
 
@@ -22,6 +22,8 @@ class MaterialService:
         if is_active is not None:
             query = query.where(Material.is_active == is_active)
         
+        # 최신 생성 순으로 정렬 (created_at 내림차순)
+        query = query.order_by(desc(Material.created_at))
         query = query.offset(skip).limit(limit)
         return list(self.db.exec(query).all())
 
@@ -66,6 +68,15 @@ class MaterialService:
         material.updated_at = datetime.utcnow()
         
         self.db.add(material)
+        self.db.commit()
+        return True
+
+    def hard_delete_material(self, material_id: int) -> bool:
+        """교재 완전 삭제 (하드 딜리트)"""
+        material = self.db.get(Material, material_id)
+        if not material:
+            return False
+        self.db.delete(material)
         self.db.commit()
         return True
 

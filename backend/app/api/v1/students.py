@@ -69,6 +69,10 @@ def update_student(
     db: Session = Depends(get_session)
 ):
     """학생 정보 수정"""
+    print(f"PUT /students/{student_id} - 받은 데이터: {student_data}")
+    print(f"데이터 타입: {type(student_data)}")
+    print(f"데이터 내용: {student_data.dict()}")
+    
     service = StudentService(db)
     
     # 이메일 변경 시 중복 확인
@@ -77,12 +81,20 @@ def update_student(
         if existing_student and existing_student.id != student_id:
             raise HTTPException(status_code=400, detail="Email already registered")
     
-    student = service.update_student(student_id, student_data)
-    
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    return StudentResponse.from_orm(student)
+    try:
+        student = service.update_student(student_id, student_data)
+        
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
+        print(f"업데이트 성공: {student}")
+        return StudentResponse.from_orm(student)
+    except Exception as e:
+        print(f"업데이트 실패: {e}")
+        print(f"에러 타입: {type(e)}")
+        import traceback
+        print(f"스택 트레이스: {traceback.format_exc()}")
+        raise
 
 
 @router.delete("/{student_id}", status_code=204)

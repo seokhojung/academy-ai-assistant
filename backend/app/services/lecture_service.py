@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, desc
 from typing import List, Optional
 from ..models.lecture import Lecture, LectureCreate, LectureUpdate
 from ..schemas.lecture import LectureResponse
@@ -12,6 +12,9 @@ class LectureService:
         query = select(Lecture)
         if is_active is not None:
             query = query.where(Lecture.is_active == is_active)
+        
+        # 최신 생성 순으로 정렬 (created_at 내림차순)
+        query = query.order_by(desc(Lecture.created_at))
         query = query.offset(skip).limit(limit)
         return list(self.db.exec(query).all())
 

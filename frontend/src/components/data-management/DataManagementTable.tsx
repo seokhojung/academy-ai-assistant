@@ -2,17 +2,12 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Paper, Button as MuiButton, IconButton, Tooltip } from "@mui/material";
+import { Paper, Button as MuiButton, IconButton, Tooltip, Box } from "@mui/material";
 import { Undo, Redo, Save, Add, Delete, MoreVert, ViewColumn } from "@mui/icons-material";
 import ColumnSettingsDialog from "./ColumnSettingsDialog";
-
-interface EditHistory {
-  id: number;
-  oldData: any;
-  newData: any;
-  timestamp: number;
-  field?: string;
-}
+import { useHistoryManager } from "../../hooks/useHistoryManager";
+import { EditEntityCommand, AddEntityCommand, DeleteEntityCommand } from "../../commands";
+import { apiClient } from "../../lib/api-client";
 
 interface DataManagementTableProps {
   entityType: "students" | "teachers" | "materials" | "lectures";
@@ -27,6 +22,7 @@ interface DataManagementTableProps {
   onAddSampleData?: () => Promise<void>;
   onSaveAll?: () => Promise<void>;
   pendingChanges?: any[];
+  onColumnSettingsChange?: (visibleColumns: string[], columnOrder: string[], allColumns: GridColDef[]) => void;
   summaryStats: {
     total: number;
     active: number;
@@ -48,23 +44,22 @@ export default function DataManagementTable({
   onAddSampleData,
   onSaveAll,
   pendingChanges = [],
+  onColumnSettingsChange,
   summaryStats
 }: DataManagementTableProps) {
   const [search, setSearch] = useState("");
   const [filteredData, setFilteredData] = useState<any[]>(data);
-  const [editHistory, setEditHistory] = useState<EditHistory[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  
+  // 히스토리 관리자 사용
+  const { executeCommand, undo, redo, canUndo, canRedo, historyInfo } = useHistoryManager();
 
-  // pendingChanges에 따라 저장 상태 업데이트
-  useEffect(() => {
-    setHasUnsavedChanges(pendingChanges.length > 0);
-  }, [pendingChanges]);
+  // pendingChanges에 따라 저장 상태 업데이트 (기존 호환성 유지)
+  const hasUnsavedChanges = pendingChanges.length > 0 || historyInfo.total > 0;
 
   // 컬럼 설정 로드
   useEffect(() => {
@@ -127,44 +122,15 @@ export default function DataManagementTable({
     }
   };
 
-  // 편집 히스토리 관리
-  const addToHistory = (oldData: any, newData: any, field?: string) => {
-    const historyItem: EditHistory = {
-      id: Date.now(),
-      oldData,
-      newData,
-      timestamp: Date.now(),
-      field
-    };
-    
-    // 현재 인덱스 이후의 히스토리 제거
-    const newHistory = editHistory.slice(0, historyIndex + 1);
-    newHistory.push(historyItem);
-    
-    setEditHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-    setHasUnsavedChanges(true);
-  };
-
+  // Command Pattern 기반 편집 히스토리 관리
   const handleUndo = async () => {
-    if (historyIndex <= 0) return;
-    
     try {
-      const currentHistory = editHistory[historyIndex];
-      const previousHistory = editHistory[historyIndex - 1];
-      
-      // 이전 상태로 되돌리기
-      await onRowUpdate(previousHistory.oldData, currentHistory.newData);
-      
-      // 히스토리 인덱스 감소
-      setHistoryIndex(historyIndex - 1);
-      
-      // 마지막 히스토리인 경우 저장 상태 업데이트
-      if (historyIndex - 1 === 0) {
-        setHasUnsavedChanges(false);
+      const success = await undo();
+      if (success) {
+        console.log('실행 취소 완료');
+      } else {
+        console.warn('실행 취소할 수 없습니다.');
       }
-      
-      console.log('실행 취소 완료');
     } catch (error) {
       console.error('실행 취소 중 오류:', error);
       alert('실행 취소 중 오류가 발생했습니다.');
@@ -172,22 +138,13 @@ export default function DataManagementTable({
   };
 
   const handleRedo = async () => {
-    if (historyIndex >= editHistory.length - 1) return;
-    
     try {
-      const currentHistory = editHistory[historyIndex];
-      const nextHistory = editHistory[historyIndex + 1];
-      
-      // 다음 상태로 진행하기
-      await onRowUpdate(nextHistory.newData, currentHistory.oldData);
-      
-      // 히스토리 인덱스 증가
-      setHistoryIndex(historyIndex + 1);
-      
-      // 저장 상태 업데이트
-      setHasUnsavedChanges(true);
-      
-      console.log('다시 실행 완료');
+      const success = await redo();
+      if (success) {
+        console.log('다시 실행 완료');
+      } else {
+        console.warn('다시 실행할 수 없습니다.');
+      }
     } catch (error) {
       console.error('다시 실행 중 오류:', error);
       alert('다시 실행 중 오류가 발생했습니다.');
@@ -204,10 +161,6 @@ export default function DataManagementTable({
         await onSaveAll();
       }
       
-      // 모든 변경사항 저장
-      setHasUnsavedChanges(false);
-      setEditHistory([]);
-      setHistoryIndex(-1);
       console.log('변경사항 저장 완료');
     } catch (error) {
       console.error('저장 중 오류:', error);
@@ -218,17 +171,21 @@ export default function DataManagementTable({
   };
 
   const handleDeleteSelected = async () => {
-    if (selectedRows.length === 0) return;
+    console.log('선택된 행들:', selectedRows);
+    if (selectedRows.length === 0) {
+      alert('삭제할 항목을 선택해주세요.');
+      return;
+    }
     
     if (confirm(`선택된 ${selectedRows.length}개 항목을 삭제하시겠습니까?`)) {
       try {
+        console.log('삭제 시작:', selectedRows);
         for (const id of selectedRows) {
+          console.log('삭제 중:', id);
           await onDeleteRow(id);
         }
         setSelectedRows([]);
-        setEditHistory([]);
-        setHistoryIndex(-1);
-        setHasUnsavedChanges(false);
+        console.log('삭제 완료');
       } catch (error) {
         console.error('삭제 중 오류:', error);
         alert('삭제 중 오류가 발생했습니다.');
@@ -237,23 +194,27 @@ export default function DataManagementTable({
   };
 
   const handleRowSelectionChange = (newSelection: any) => {
-    setSelectedRows(Array.isArray(newSelection) ? newSelection : []);
+    console.log('선택 변경:', newSelection);
+    const selectionArray = Array.isArray(newSelection) ? newSelection : [];
+    setSelectedRows(selectionArray);
+    console.log('선택된 행 업데이트:', selectionArray);
   };
 
   const handleAddRow = async () => {
     try {
       await onAddRow();
-      setEditHistory([]);
-      setHistoryIndex(-1);
-      setHasUnsavedChanges(false);
     } catch (error) {
       console.error('추가 중 오류:', error);
     }
   };
 
-  const handleColumnSettingsSave = (newVisibleColumns: string[], newColumnOrder: string[]) => {
+  const handleColumnSettingsSave = (newVisibleColumns: string[], newColumnOrder: string[], allColumns: GridColDef[]) => {
     setVisibleColumns(newVisibleColumns);
     setColumnOrder(newColumnOrder);
+    // 부모 컴포넌트에 컬럼 설정 변경 알림
+    if (onColumnSettingsChange) {
+      onColumnSettingsChange(newVisibleColumns, newColumnOrder, allColumns);
+    }
   };
 
   return (
@@ -326,7 +287,7 @@ export default function DataManagementTable({
             <span>
               <IconButton 
                 onClick={handleUndo} 
-                disabled={historyIndex <= 0}
+                disabled={!canUndo}
                 color="primary"
               >
                 <Undo />
@@ -339,7 +300,7 @@ export default function DataManagementTable({
             <span>
               <IconButton 
                 onClick={handleRedo} 
-                disabled={historyIndex >= editHistory.length - 1}
+                disabled={!canRedo}
                 color="primary"
               >
                 <Redo />
@@ -384,14 +345,41 @@ export default function DataManagementTable({
           </Tooltip>
           
           {/* 삭제 */}
-          <Tooltip title="선택된 항목 삭제">
+          <Tooltip title={`선택된 ${selectedRows.length}개 항목 삭제`}>
             <span>
               <IconButton 
                 onClick={handleDeleteSelected} 
                 disabled={selectedRows.length === 0}
                 color="error"
+                sx={{
+                  position: 'relative',
+                  '&:disabled': {
+                    opacity: 0.5
+                  }
+                }}
               >
                 <Delete />
+                {selectedRows.length > 0 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      backgroundColor: 'error.main',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: 20,
+                      height: 20,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {selectedRows.length}
+                  </Box>
+                )}
               </IconButton>
             </span>
           </Tooltip>
@@ -421,9 +409,25 @@ export default function DataManagementTable({
           pageSizeOptions={[10, 25, 50]}
           checkboxSelection
           disableRowSelectionOnClick
+          rowSelectionModel={selectedRows}
           processRowUpdate={async (newRow, oldRow) => {
-            addToHistory(oldRow, newRow);
-            return await onRowUpdate(newRow, oldRow);
+            // Command Pattern을 사용하여 편집 히스토리 관리
+            const editCommand = new EditEntityCommand(
+              entityType,
+              newRow.id,
+              oldRow,
+              newRow,
+              apiClient,
+              (data) => {
+                // 로컬 상태 업데이트 (부모 컴포넌트에서 처리)
+                if (onRowUpdate) {
+                  onRowUpdate(data, oldRow);
+                }
+              }
+            );
+            
+            await executeCommand(editCommand);
+            return newRow;
           }}
           onRowSelectionModelChange={handleRowSelectionChange}
           autoHeight

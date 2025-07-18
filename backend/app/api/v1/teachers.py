@@ -4,6 +4,7 @@ from typing import List, Optional
 from app.models import Teacher, TeacherCreate, TeacherUpdate
 from app.core.database import get_session
 from app.core.auth import AuthService
+from app.services.teacher_service import TeacherService
 
 router = APIRouter()
 
@@ -73,12 +74,27 @@ def delete_teacher(
     session: Session = Depends(get_session)
     # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
-    """강사를 삭제합니다."""
-    statement = select(Teacher).where(Teacher.id == teacher_id)
-    teacher = session.exec(statement).first()
-    if not teacher:
+    """강사를 삭제합니다 (소프트 삭제)."""
+    service = TeacherService(session)
+    success = service.delete_teacher(teacher_id)
+    
+    if not success:
         raise HTTPException(status_code=404, detail="Teacher not found")
     
-    session.delete(teacher)
-    session.commit()
-    return {"message": "Teacher deleted successfully"} 
+    return {"message": "Teacher deleted successfully"}
+
+
+@router.delete("/{teacher_id}/hard", summary="강사 완전 삭제")
+def hard_delete_teacher(
+    teacher_id: int,
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
+):
+    """강사를 완전히 삭제합니다 (하드 딜리트)."""
+    service = TeacherService(session)
+    success = service.hard_delete_teacher(teacher_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    
+    return {"message": "Teacher permanently deleted"} 

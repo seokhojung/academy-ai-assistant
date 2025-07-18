@@ -1,5 +1,109 @@
 # System Patterns
 
+## 🚨 **체계적 디버깅 패턴 (NEW - MANDATORY)**
+
+### 1. 문제 진단 패턴 (Root Cause Analysis)
+
+#### 구조
+```typescript
+interface ProblemDiagnosis {
+  symptoms: string[];
+  reproductionSteps: string[];
+  affectedComponents: string[];
+  rootCause: string;
+  impactScope: 'low' | 'medium' | 'high' | 'critical';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+}
+```
+
+#### 진단 프로세스
+```mermaid
+flowchart TD
+    A[문제 발견] --> B[증상 분석]
+    B --> C[재현 조건 정의]
+    C --> D[영향 범위 분석]
+    D --> E[근본 원인 추정]
+    E --> F[우선순위 결정]
+    F --> G[해결책 설계]
+```
+
+#### 장점
+- ✅ **체계적 접근**: 임시 수정 방지
+- ✅ **근본 원인 파악**: 재발 방지
+- ✅ **영향도 분석**: 전체 시스템 고려
+- ✅ **우선순위 설정**: 효율적인 리소스 배분
+
+### 2. 해결책 설계 패턴
+
+#### 설계 체크리스트
+```typescript
+interface SolutionDesign {
+  isTemporary: boolean;
+  architecturalConsistency: boolean;
+  maintainabilityScore: number; // 1-10
+  testability: boolean;
+  performanceImpact: 'low' | 'medium' | 'high';
+  securityImpact: 'low' | 'medium' | 'high';
+}
+```
+
+#### 설계 원칙
+1. **임시 수정 금지**: 최대 24시간만 허용
+2. **아키텍처 일관성**: 기존 패턴과 일치
+3. **유지보수성**: 6개월 후에도 이해 가능
+4. **테스트 가능성**: 자동화된 테스트 작성
+5. **성능 고려**: 성능 저하 없는 해결책
+
+### 3. 실수 해명 패턴 (Error Accountability)
+
+#### 실수 유형별 대응
+```typescript
+interface ErrorResponse {
+  errorType: 'code' | 'architecture' | 'performance' | 'security';
+  immediateAction: string;
+  rootCauseAnalysis: string;
+  preventionMeasures: string[];
+  documentationUpdate: string;
+}
+```
+
+#### 실수 해명 프로세스
+```mermaid
+flowchart TD
+    A[실수 발생] --> B[즉시 중단]
+    B --> C[메모리 뱅크 기록]
+    C --> D[근본 원인 분석]
+    D --> E[해결책 구현]
+    E --> F[검증 및 테스트]
+    F --> G[재발 방지책 수립]
+    G --> H[팀 공유 및 학습]
+```
+
+#### 책임 원칙
+- **모든 실수는 문서화**: 메모리 뱅크에 즉시 기록
+- **근본 원인 분석**: 왜 실수가 발생했는지 분석
+- **재발 방지책**: 동일한 실수 재발 방지
+- **팀 공유**: 실수와 교훈을 팀 전체가 공유
+
+### 4. 코드 품질 관리 패턴
+
+#### 품질 체크리스트
+```typescript
+interface CodeQualityCheck {
+  readability: number; // 1-10
+  maintainability: number; // 1-10
+  testCoverage: number; // 0-100%
+  performanceScore: number; // 1-10
+  securityScore: number; // 1-10
+}
+```
+
+#### 품질 개선 프로세스
+1. **정기적 리뷰**: 주간 코드 품질 점검
+2. **리팩토링**: 복잡한 코드 단순화
+3. **테스트 추가**: 커버리지 향상
+4. **문서화**: 복잡한 로직 설명 추가
+
 ## 아키텍처 패턴
 
 ### 1. Command Pattern (Undo/Redo 시스템)
