@@ -11,8 +11,8 @@ router = APIRouter()
 def get_materials(
     skip: int = 0,
     limit: int = 100,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """교재 목록을 조회합니다."""
     statement = select(Material).offset(skip).limit(limit)
@@ -22,8 +22,8 @@ def get_materials(
 @router.get("/{material_id}", response_model=Material, summary="교재 상세 조회")
 def get_material(
     material_id: int,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """특정 교재의 상세 정보를 조회합니다."""
     statement = select(Material).where(Material.id == material_id)
@@ -35,8 +35,8 @@ def get_material(
 @router.post("/", response_model=Material, summary="교재 등록")
 def create_material(
     material: MaterialCreate,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """새로운 교재를 등록합니다."""
     db_material = Material.from_orm(material)
@@ -49,8 +49,8 @@ def create_material(
 def update_material(
     material_id: int,
     material: MaterialUpdate,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """교재 정보를 수정합니다."""
     statement = select(Material).where(Material.id == material_id)
@@ -70,8 +70,8 @@ def update_material(
 @router.delete("/{material_id}", summary="교재 삭제")
 def delete_material(
     material_id: int,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """교재를 삭제합니다."""
     statement = select(Material).where(Material.id == material_id)

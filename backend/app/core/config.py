@@ -27,8 +27,8 @@ class Settings:
     access_token_expire_minutes: int = config("ACCESS_TOKEN_EXPIRE_MINUTES", default=30, cast=int)
     
     # Firebase
-    firebase_api_key: str = config("FIREBASE_API_KEY", default="AIzaSyAo9FU7YNkepYGy4zeqqj_CM_SBcdOYSn8")
-    firebase_project_id: str = config("FIREBASE_PROJECT_ID", default="academy-ai-assistant")
+    firebase_api_key: str = config("FIREBASE_API_KEY", default="")
+    firebase_project_id: str = config("FIREBASE_PROJECT_ID", default="")
     
     # Gemini API
     gemini_api_key: str = config("GEMINI_API_KEY", default="your-gemini-api-key")

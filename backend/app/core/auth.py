@@ -22,14 +22,28 @@ if firebase_admin:
     try:
         firebase_admin.get_app()
     except ValueError:
-        # Firebase 설정 파일 경로 - backend 폴더 기준
-        firebase_config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "firebase-config.json")
+        # 환경 변수에서 Firebase 설정 읽기
+        firebase_private_key = os.getenv("FIREBASE_PRIVATE_KEY")
+        firebase_client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
+        firebase_project_id = os.getenv("FIREBASE_PROJECT_ID")
         
-        if os.path.exists(firebase_config_path):
-            cred = credentials.Certificate(firebase_config_path)
+        if firebase_private_key and firebase_client_email and firebase_project_id and credentials:
+            # 환경 변수에서 Firebase 설정 생성
+            firebase_config = {
+                "type": "service_account",
+                "project_id": firebase_project_id,
+                "private_key": firebase_private_key.replace('\\n', '\n'),
+                "client_email": firebase_client_email,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{firebase_client_email}"
+            }
+            
+            cred = credentials.Certificate(firebase_config)
             firebase_admin.initialize_app(cred)
         else:
-            print("Warning: Firebase config file not found. Firebase auth will be disabled.")
+            print("Warning: Firebase environment variables not found. Firebase auth will be disabled.")
             firebase_admin = None
 else:
     print("Warning: Firebase admin not available. Firebase auth will be disabled.")
@@ -111,7 +125,7 @@ class AuthService:
     
     @staticmethod
     async def verify_firebase_token(id_token: str) -> Optional[Dict[str, Any]]:
-        if not firebase_admin:
+        if not firebase_admin or not auth:
             return None
         
         try:

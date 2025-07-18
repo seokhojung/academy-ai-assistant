@@ -179,7 +179,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []); // state 의존성 제거하여 무한 루프 방지
 
   return {
     ...state,

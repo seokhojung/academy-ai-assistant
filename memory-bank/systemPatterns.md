@@ -1,222 +1,257 @@
-# Academy AI Assistant - 시스템 아키텍처 패턴
+# System Patterns
 
-## 전체 시스템 아키텍처
+## 아키텍처 패턴
 
-```mermaid
-graph TB
-    subgraph "Frontend Layer"
-        Next[Next.js 14 RSC]
-        Story[Storybook]
-        PWA[PWA Mobile]
-    end
-    
-    subgraph "API Layer"
-        FastAPI[FastAPI 0.111]
-        SSE[Server-Sent Events]
-        tRPC[tRPC Client]
-    end
-    
-    subgraph "AI Layer"
-        Gemini[Gemini 1.5 Flash]
-        Parser[Natural Language Parser]
-    end
-    
-    subgraph "Data Layer"
-        Postgres[PostgreSQL 15]
-        Redis[Redis 7 Cache]
-        SQLite[SQLite Dev]
-    end
-    
-    subgraph "Worker Layer"
-        Celery[Celery 5 Worker]
-        Rebuilder[Excel Rebuilder]
-        Portal[Portalocker]
-    end
-    
-    subgraph "Storage Layer"
-        GCS[GCS Bucket]
-        Version[Versioning]
-        Glacier[Glacier Lifecycle]
-    end
-    
-    subgraph "Auth Layer"
-        Firebase[Firebase Auth]
-        JWT[JWT 15m/Refresh 7d]
-    end
-    
-    Next --> tRPC
-    tRPC --> FastAPI
-    FastAPI --> Gemini
-    FastAPI --> Postgres
-    FastAPI --> Redis
-    FastAPI --> Celery
-    Celery --> Rebuilder
-    Rebuilder --> Portal
-    Rebuilder --> GCS
-    FastAPI --> Firebase
-    SSE --> Next
-    PWA --> FastAPI
+### 1. Command Pattern (Undo/Redo 시스템)
+**목적**: 사용자 작업의 실행/취소/재실행을 위한 표준 패턴
+
+#### 구조
+```typescript
+interface Command {
+  execute(): Promise<void>;
+  undo(): Promise<void>;
+}
+
+class HistoryManager {
+  private commands: Command[] = [];
+  private currentIndex = -1;
+  
+  async executeCommand(command: Command) {
+    await command.execute();
+    this.commands = this.commands.slice(0, this.currentIndex + 1);
+    this.commands.push(command);
+    this.currentIndex++;
+  }
+  
+  async undo() {
+    if (this.currentIndex >= 0) {
+      await this.commands[this.currentIndex].undo();
+      this.currentIndex--;
+    }
+  }
+  
+  async redo() {
+    if (this.currentIndex < this.commands.length - 1) {
+      this.currentIndex++;
+      await this.commands[this.currentIndex].execute();
+    }
+  }
+}
 ```
 
-## 핵심 설계 패턴
+#### 장점
+- ✅ **표준 패턴**: 검증된 방법론
+- ✅ **확장성**: 새로운 명령어 추가 용이
+- ✅ **테스트 용이성**: 각 Command 독립 테스트
+- ✅ **에러 처리**: 각 단계별 에러 처리 가능
 
-### 1. AI-First Architecture
-```
-[User Input] → [Natural Language] → [Gemini Parser] → [CRUD Operations] → [Database]
-     ↓              ↓                    ↓                    ↓              ↓
-[SSE Stream] ← [Real-time Feedback] ← [Processing Status] ← [Validation] ← [Results]
+#### 구현 예시
+```typescript
+class EditStudentCommand implements Command {
+  constructor(
+    private studentId: number,
+    private oldData: any,
+    private newData: any,
+    private apiClient: ApiClient
+  ) {}
+  
+  async execute() {
+    await this.apiClient.updateStudent(this.studentId, this.newData);
+  }
+  
+  async undo() {
+    await this.apiClient.updateStudent(this.studentId, this.oldData);
+  }
+}
 ```
 
-### 2. Excel Rebuilder Pattern
-```
-[Data Change] → [Celery Task] → [Portalocker Lock] → [openpyxl.write_only] → [Atomic Rename] → [GCS Upload]
-     ↓              ↓                ↓                    ↓                    ↓              ↓
-[Version N+1] ← [Task Complete] ← [Lock Release] ← [File Generated] ← [Temp File] ← [Versioned Upload]
+### 2. 환경별 전략 패턴
+
+#### 로컬 개발 환경
+- **메모리 기반 히스토리**: 빠른 응답
+- **즉시 로컬 반영**: 편집 시 즉시 상태 업데이트
+- **디버깅 지원**: 콘솔 로그 및 상태 추적
+
+#### 웹 배포 환경
+- **하이브리드 방식**: 로컬 캐시 + 서버 동기화
+- **데이터 일관성**: 편집 시 즉시 서버 반영
+- **에러 복구**: 네트워크 오류 시 자동 롤백
+
+### 3. 상태 관리 패턴
+
+#### Command Stack 관리
+```typescript
+interface CommandState {
+  commands: Command[];
+  currentIndex: number;
+  canUndo: boolean;
+  canRedo: boolean;
+}
 ```
 
-### 3. Real-time Communication
+#### 데이터 상태 동기화
+```typescript
+interface DataState {
+  localData: any[];
+  serverData: any[];
+  isSynchronized: boolean;
+  lastSyncTime: Date;
+}
 ```
-[FastAPI] → [SSE Stream] → [Next.js] → [UI Update]
-     ↓           ↓            ↓           ↓
-[Gemini] → [Processing] → [tRPC] → [State Sync]
+
+## 컴포넌트 패턴
+
+### 1. ExcelPreviewTable 컴포넌트
+**역할**: 엑셀 미리보기 및 데이터 편집 인터페이스
+
+#### 의존성
+- HistoryManager: Undo/Redo 기능
+- ApiClient: 서버 통신
+- DataGrid: 데이터 표시 및 편집
+
+#### 상태 관리
+```typescript
+interface ExcelPreviewTableState {
+  data: any[];
+  loading: boolean;
+  error: string | null;
+  historyManager: HistoryManager;
+  hasUnsavedChanges: boolean;
+}
+```
+
+### 2. HistoryManager 훅
+**역할**: Command Pattern 기반 히스토리 관리
+
+#### 인터페이스
+```typescript
+interface UseHistoryManager {
+  executeCommand: (command: Command) => Promise<void>;
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
+  canUndo: boolean;
+  canRedo: boolean;
+  clearHistory: () => void;
+}
 ```
 
 ## 데이터 플로우 패턴
 
-### 자연어 명령 처리 플로우
-1. **사용자 입력**: Next.js에서 자연어 명령 입력
-2. **tRPC 호출**: FastAPI `/command` 엔드포인트로 전송
-3. **Gemini 파싱**: 자연어를 구조화된 JSON으로 변환
-4. **검증**: Pydantic을 통한 데이터 검증
-5. **데이터베이스 작업**: SQLModel ORM을 통한 CRUD
-6. **Excel Rebuilder**: Celery 태스크로 Excel 파일 재생성
-7. **실시간 피드백**: SSE를 통한 처리 상태 스트리밍
-
-### 파일 관리 플로우
-1. **업로드**: presigned URL을 통한 직접 GCS 업로드
-2. **메타데이터 저장**: PostgreSQL에 파일 정보 저장
-3. **미리보기**: SheetJS → Handsontable 100행 청크 처리
-4. **다운로드**: presigned URL을 통한 직접 다운로드
-5. **버전 관리**: GCS 버전 관리 및 Glacier 아카이빙
-
-## 보안 패턴
-
-### 인증 및 권한
-- **Firebase Auth**: Google Sign-In 기반 인증
-- **JWT 토큰**: 15분 액세스 + 7일 리프레시
-- **Role-based ACL**: 학생/강사/관리자 권한 분리
-- **Row-level Lock**: PostgreSQL 행 수준 잠금
-
-### JWT와 Firebase 협력 관계
-
-#### JWT의 역할
-1. **API 보안**: 모든 백엔드 API 요청에 인증 필요
-2. **세션 관리**: 사용자 로그인 상태를 토큰으로 관리
-3. **서버 부하 감소**: 서버가 세션을 저장할 필요 없음 (Stateless)
-
-#### Firebase의 역할
-1. **사용자 인증**: Google 로그인 등 소셜 로그인 제공
-2. **보안 인프라**: Google의 안전한 인증 시스템 활용
-3. **사용자 관리**: Firebase Console에서 사용자 관리
-
-#### 인증 플로우
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant Firebase
-    participant Backend
-    participant Database
-
-    User->>Frontend: Google 로그인 클릭
-    Frontend->>Firebase: Google 로그인 요청
-    Firebase->>Frontend: ID 토큰 반환
-    Frontend->>Backend: ID 토큰 전송
-    Backend->>Firebase: 토큰 검증
-    Firebase->>Backend: 사용자 정보 반환
-    Backend->>Database: 사용자 정보 저장/조회
-    Backend->>Frontend: JWT 토큰 발급
-    Frontend->>User: 로그인 완료
+### 1. 편집 플로우
+```
+사용자 편집 → Command 생성 → HistoryManager.executeCommand() → 
+서버 API 호출 → 로컬 상태 업데이트 → UI 업데이트
 ```
 
-#### API 요청 플로우
-```mermaid
-sequenceDiagram
-    participant Frontend
-    participant Backend
-    participant Database
-
-    Frontend->>Backend: API 요청 (JWT 토큰 포함)
-    Backend->>Backend: JWT 토큰 검증
-    Backend->>Database: 사용자 정보 조회
-    Backend->>Frontend: API 응답
+### 2. Undo 플로우
+```
+Undo 버튼 클릭 → HistoryManager.undo() → 
+Command.undo() → 서버 API 호출 → 로컬 상태 업데이트 → UI 업데이트
 ```
 
-#### 토큰 구성 요소
-- **JWT Header**: 알고리즘 정보 (HS256)
-- **JWT Payload**: 사용자 ID, 만료 시간, 발급 시간
-- **JWT Signature**: 서버 비밀키로 서명
-- **Firebase ID Token**: Google에서 발급한 사용자 인증 토큰
-
-### 데이터 보안
-- **TLS 암호화**: 모든 전송 데이터 암호화
-- **GCS 버전 관리**: 파일 변경 이력 추적
-- **PITR**: PostgreSQL Point-in-Time Recovery
-- **Redis 블랙리스트**: 만료된 JWT 토큰 관리
-
-## 성능 패턴
-
-### 캐싱 전략
-- **Redis LRU**: 256MB 메모리 캐시
-- **JWT 캐싱**: 토큰 검증 결과 캐싱
-- **파일 메타데이터**: 자주 접근하는 파일 정보 캐싱
-
-### 비동기 처리
-- **Celery Worker**: Excel 재생성 비동기 처리
-- **SSE 스트리밍**: 실시간 상태 업데이트
-- **Background Tasks**: FastAPI 백그라운드 태스크
-
-### 데이터베이스 최적화
-- **SQLModel ORM**: 타입 안전한 데이터베이스 접근
-- **Connection Pooling**: 데이터베이스 연결 풀 관리
-- **Indexing**: 자주 조회되는 컬럼 인덱싱
-
-## 확장성 패턴
-
-### 마이크로서비스 준비
-- **API Gateway**: FastAPI를 통한 단일 진입점
-- **Service Discovery**: 내부 서비스 간 통신
-- **Load Balancing**: Cloud Run을 통한 자동 스케일링
-
-### 모니터링 및 로깅
-- **Sentry**: 에러 추적 및 성능 모니터링
-- **Grafana**: 메트릭 시각화 및 알림
-- **Cloud Logging**: 중앙화된 로그 관리
-
-## 개발 패턴
-
-### 코드 구조
+### 3. Redo 플로우
 ```
-backend/
-├── app/
-│   ├── api/          # FastAPI 라우터
-│   ├── core/         # 설정 및 유틸리티
-│   ├── models/       # SQLModel 모델
-│   ├── services/     # 비즈니스 로직
-│   └── workers/      # Celery 태스크
-├── tests/            # pytest 테스트
-└── alembic/          # 데이터베이스 마이그레이션
-
-frontend/
-├── app/              # Next.js App Router
-├── components/       # 재사용 가능한 컴포넌트
-├── lib/              # 유틸리티 함수
-├── hooks/            # 커스텀 훅
-└── stories/          # Storybook 스토리
+Redo 버튼 클릭 → HistoryManager.redo() → 
+Command.execute() → 서버 API 호출 → 로컬 상태 업데이트 → UI 업데이트
 ```
 
-### 테스트 전략
-- **Unit Tests**: pytest를 통한 단위 테스트
-- **Integration Tests**: API 엔드포인트 통합 테스트
-- **E2E Tests**: Playwright를 통한 전체 플로우 테스트
-- **AI Tests**: Gemini 응답 품질 테스트 
+## 에러 처리 패턴
+
+### 1. Command 실행 실패
+```typescript
+try {
+  await command.execute();
+} catch (error) {
+  // 1. 로컬 상태 롤백
+  // 2. 사용자에게 에러 알림
+  // 3. 히스토리에서 해당 Command 제거
+}
+```
+
+### 2. 네트워크 오류 복구
+```typescript
+class NetworkErrorHandler {
+  static async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3
+  ): Promise<T> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (i === maxRetries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      }
+    }
+  }
+}
+```
+
+## 테스트 패턴
+
+### 1. Command 단위 테스트
+```typescript
+describe('EditStudentCommand', () => {
+  it('should execute successfully', async () => {
+    const command = new EditStudentCommand(1, oldData, newData, mockApiClient);
+    await command.execute();
+    expect(mockApiClient.updateStudent).toHaveBeenCalledWith(1, newData);
+  });
+  
+  it('should undo successfully', async () => {
+    const command = new EditStudentCommand(1, oldData, newData, mockApiClient);
+    await command.undo();
+    expect(mockApiClient.updateStudent).toHaveBeenCalledWith(1, oldData);
+  });
+});
+```
+
+### 2. HistoryManager 통합 테스트
+```typescript
+describe('HistoryManager', () => {
+  it('should handle undo/redo correctly', async () => {
+    const manager = new HistoryManager();
+    const command = new EditStudentCommand(1, oldData, newData, mockApiClient);
+    
+    await manager.executeCommand(command);
+    expect(manager.canUndo()).toBe(true);
+    
+    await manager.undo();
+    expect(manager.canRedo()).toBe(true);
+    
+    await manager.redo();
+    expect(manager.canUndo()).toBe(true);
+  });
+});
+```
+
+## 성능 최적화 패턴
+
+### 1. Command 배치 처리
+```typescript
+class BatchCommand implements Command {
+  constructor(private commands: Command[]) {}
+  
+  async execute() {
+    await Promise.all(this.commands.map(cmd => cmd.execute()));
+  }
+  
+  async undo() {
+    await Promise.all(this.commands.map(cmd => cmd.undo()));
+  }
+}
+```
+
+### 2. 메모리 관리
+```typescript
+class HistoryManager {
+  private maxCommands = 100; // 최대 히스토리 개수 제한
+  
+  private cleanupOldCommands() {
+    if (this.commands.length > this.maxCommands) {
+      this.commands = this.commands.slice(-this.maxCommands);
+      this.currentIndex = Math.min(this.currentIndex, this.commands.length - 1);
+    }
+  }
+}
+``` 

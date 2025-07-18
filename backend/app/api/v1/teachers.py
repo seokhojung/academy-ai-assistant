@@ -11,8 +11,8 @@ router = APIRouter()
 def get_teachers(
     skip: int = 0,
     limit: int = 100,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """강사 목록을 조회합니다."""
     statement = select(Teacher).offset(skip).limit(limit)
@@ -22,8 +22,8 @@ def get_teachers(
 @router.get("/{teacher_id}", response_model=Teacher, summary="강사 상세 조회")
 def get_teacher(
     teacher_id: int,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """특정 강사의 상세 정보를 조회합니다."""
     statement = select(Teacher).where(Teacher.id == teacher_id)
@@ -35,8 +35,8 @@ def get_teacher(
 @router.post("/", response_model=Teacher, summary="강사 등록")
 def create_teacher(
     teacher: TeacherCreate,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """새로운 강사를 등록합니다."""
     db_teacher = Teacher.from_orm(teacher)
@@ -49,8 +49,8 @@ def create_teacher(
 def update_teacher(
     teacher_id: int,
     teacher: TeacherUpdate,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """강사 정보를 수정합니다."""
     statement = select(Teacher).where(Teacher.id == teacher_id)
@@ -70,8 +70,8 @@ def update_teacher(
 @router.delete("/{teacher_id}", summary="강사 삭제")
 def delete_teacher(
     teacher_id: int,
-    session: Session = Depends(get_session),
-    current_user = Depends(AuthService.get_current_active_user)
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """강사를 삭제합니다."""
     statement = select(Teacher).where(Teacher.id == teacher_id)

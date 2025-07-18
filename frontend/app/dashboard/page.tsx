@@ -44,21 +44,43 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      // TODO: 실제 API 호출로 대체
-      // const response = await fetch('/api/v1/dashboard/stats', {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      // const data = await response.json();
+      setIsLoading(true);
       
-      // 임시 데이터 (개발용)
+      // 실제 API 호출로 DB 통계 가져오기
+      const [studentsRes, teachersRes, materialsRes, lecturesRes] = await Promise.all([
+        fetch('http://localhost:8000/api/v1/students/'),
+        fetch('http://localhost:8000/api/v1/teachers/'),
+        fetch('http://localhost:8000/api/v1/materials/'),
+        fetch('http://localhost:8000/api/v1/lectures/')
+      ]);
+
+      const studentsData = await studentsRes.json();
+      const teachersData = await teachersRes.json();
+      const materialsData = await materialsRes.json();
+      const lecturesData = await lecturesRes.json();
+
+      // 실제 DB 데이터로 통계 설정
       setStats({
-        students: 25,
-        teachers: 8,
-        materials: 15,
-        activeCourses: 12
+        students: studentsData.total || studentsData.students?.length || 0,
+        teachers: teachersData.length || 0,
+        materials: materialsData.length || 0,
+        activeCourses: lecturesData.total || lecturesData.lectures?.length || 0
       });
+
+      console.log('실제 DB 통계:', {
+        students: studentsData.total || studentsData.students?.length || 0,
+        teachers: teachersData.length || 0,
+        materials: materialsData.length || 0,
+        activeCourses: lecturesData.total || lecturesData.lectures?.length || 0
+      });
+
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
+      toast({
+        title: "데이터 로드 실패",
+        description: "대시보드 데이터를 불러오는데 실패했습니다.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +119,7 @@ export default function DashboardPage() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Glassmorphism KPI 카드 */}
         <KPIGrid>
           <GlassCard
@@ -152,10 +174,11 @@ export default function DashboardPage() {
             icon={Calendar}
             trend={{ value: 8, isPositive: true }}
             onClick={() => {
+              router.push('/lectures');
               toast({
-                title: "강의 관리",
-                description: "강의 관리 기능은 곧 추가될 예정입니다.",
-                variant: "warning",
+                title: "강의 관리 페이지로 이동",
+                description: "강의 정보를 확인하고 관리할 수 있습니다.",
+                variant: "info",
               });
             }}
           />

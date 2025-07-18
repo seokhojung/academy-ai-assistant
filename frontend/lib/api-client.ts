@@ -150,11 +150,101 @@ class ApiClient {
   }
 
   // 강사 관련 API (인증 필요)
-  async getTeachers(token: string) {
+  async getTeachersWithAuth(token: string) {
     return this.request('/api/v1/teachers/', {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+    });
+  }
+
+  // 강사 관련 API (인증 없음 - 테스트용)
+  async getTeachers() {
+    const response = await this.request('/api/v1/teachers/');
+    const data: any = response.data;
+    return {
+      ...response,
+      data: Array.isArray(data && data.teachers) ? data.teachers : [],
+    };
+  }
+
+  async createTeacher(teacherData: any) {
+    return this.request('/api/v1/teachers/', {
+      method: 'POST',
+      body: JSON.stringify(teacherData),
+    });
+  }
+
+  async updateTeacher(id: number, teacherData: any) {
+    return this.request(`/api/v1/teachers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(teacherData),
+    });
+  }
+
+  async deleteTeacher(id: number) {
+    return this.request(`/api/v1/teachers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 교재 관련 API
+  async getMaterials() {
+    const response = await this.request('/api/v1/materials/');
+    const data: any = response.data;
+    return {
+      ...response,
+      data: Array.isArray(data && data.materials) ? data.materials : [],
+    };
+  }
+
+  async createMaterial(materialData: any) {
+    return this.request('/api/v1/materials/', {
+      method: 'POST',
+      body: JSON.stringify(materialData),
+    });
+  }
+
+  async updateMaterial(id: number, materialData: any) {
+    return this.request(`/api/v1/materials/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(materialData),
+    });
+  }
+
+  async deleteMaterial(id: number) {
+    return this.request(`/api/v1/materials/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 강의 관련 API
+  async getLectures() {
+    const response = await this.request('/api/v1/lectures/');
+    const data: any = response.data;
+    return {
+      ...response,
+      data: Array.isArray(data && data.lectures) ? data.lectures : [],
+    };
+  }
+
+  async createLecture(lectureData: any) {
+    return this.request('/api/v1/lectures/', {
+      method: 'POST',
+      body: JSON.stringify(lectureData),
+    });
+  }
+
+  async updateLecture(id: number, lectureData: any) {
+    return this.request(`/api/v1/lectures/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(lectureData),
+    });
+  }
+
+  async deleteLecture(id: number) {
+    return this.request(`/api/v1/lectures/${id}`, {
+      method: 'DELETE',
     });
   }
 
