@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { Paper, Button as MuiButton, IconButton, Tooltip, Box } from "@mui/material";
-import { Undo, Redo, Save, Add, Delete, MoreVert, ViewColumn } from "@mui/icons-material";
+import { Undo, Redo, Save, Add, Delete, MoreVert, ViewColumn, FileDownload } from "@mui/icons-material";
 import ColumnSettingsDialog from "./ColumnSettingsDialog";
 import { useHistoryManager } from "../../hooks/useHistoryManager";
 import { EditEntityCommand, AddEntityCommand, DeleteEntityCommand } from "../../commands";
 import { apiClient } from "../../lib/api-client";
+import { ExcelDownloadButton } from "../ui/ExcelDownloadButton";
 
 interface DataManagementTableProps {
   entityType: "students" | "teachers" | "materials" | "lectures";
@@ -383,6 +384,13 @@ export default function DataManagementTable({
               </IconButton>
             </span>
           </Tooltip>
+          
+          {/* 엑셀 다운로드 */}
+          <ExcelDownloadButton 
+            entityType={entityType} 
+            data={filteredData}
+            columns={filteredColumns}
+          />
           
           {/* 추가 버튼들 */}
           <MuiButton variant="contained" color="primary" onClick={handleAddRow}>

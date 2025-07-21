@@ -37,6 +37,23 @@ export default function LecturesPage() {
     fetchLectures();
   }, []);
 
+  // AI 챗봇에서 데이터 변경 시 자동 갱신
+  useEffect(() => {
+    const handleDataUpdate = (event: CustomEvent) => {
+      const { entity, action } = event.detail;
+      if (entity === 'lecture') {
+        console.log(`[LecturesPage] AI 챗봇에서 ${action} 감지, 데이터 갱신`);
+        fetchLectures();
+      }
+    };
+
+    window.addEventListener('dataUpdated', handleDataUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate as EventListener);
+    };
+  }, []);
+
   const fetchLectures = async () => {
     setIsLoading(true);
     try {

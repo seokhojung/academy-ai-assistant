@@ -8,6 +8,49 @@ export class HttpApiClient implements ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  // 인증 토큰 가져오기
+  private getAuthToken(): string | null {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        // 토큰 유효성 간단 체크 (JWT 형식 확인)
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          try {
+            // 토큰 만료 시간 확인 (선택적)
+            const payload = JSON.parse(atob(parts[1]));
+            const exp = payload.exp;
+            if (exp && Date.now() >= exp * 1000) {
+              console.log('[API] 토큰 만료됨, 삭제');
+              localStorage.removeItem('authToken');
+              return null;
+            }
+          } catch (e) {
+            console.log('[API] 토큰 파싱 오류:', e);
+          }
+        }
+      }
+      return token;
+    }
+    return null;
+  }
+
+  // 기본 헤더 설정
+  private getHeaders(): HeadersInit {
+    const token = this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    console.log(`[API] 인증 토큰 상태:`, token ? `존재함 (${token.substring(0, 20)}...)` : '없음');
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return headers;
+  }
+
   async updateEntity(entityType: string, id: number, data: any): Promise<any> {
     console.log(`[API] PUT ${this.baseUrl}/${entityType}/${id}`);
     console.log(`[API] 전송 데이터:`, data);
@@ -15,9 +58,7 @@ export class HttpApiClient implements ApiClient {
     
     const response = await fetch(`${this.baseUrl}/${entityType}/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -58,9 +99,7 @@ export class HttpApiClient implements ApiClient {
     
     const response = await fetch(`${this.baseUrl}/${entityType}/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -95,29 +134,90 @@ export class HttpApiClient implements ApiClient {
   async deleteEntity(entityType: string, id: number): Promise<any> {
     const response = await fetch(`${this.baseUrl}/${entityType}/${id}/hard`, {
       method: 'DELETE',
+      headers: this.getHeaders(),
     });
 
     if (!response.ok) {
       throw new Error(`Failed to delete ${entityType} ${id}: ${response.statusText}`);
     }
 
-    // 204 No Content 응답의 경우 빈 객체 반환
-    if (response.status === 204) {
-      return { success: true };
+    return await response.json();
+  }
+
+  async executeCRUD(command: any): Promise<any> {
+    console.log(`[API] POST ${this.baseUrl}/ai/execute-crud`);
+    console.log(`[API] CRUD 명령:`, command);
+    
+    const response = await fetch(`${this.baseUrl}/ai/execute-crud`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(command),
+    });
+
+    console.log(`[API] 응답 상태:`, response.status, response.statusText);
+
+    if (!response.ok) {
+      let errorMessage = `CRUD 실행 실패: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        console.log(`[API] 에러 데이터:`, errorData);
+        if (errorData.detail) {
+          errorMessage += ` - ${errorData.detail}`;
+        }
+        
+        // 인증 오류인 경우 관리자 API로 재시도
+        if (response.status === 401 || response.status === 403) {
+          console.log(`[API] 인증 오류 감지, 관리자 API로 재시도`);
+          return await this.executeCRUDAdmin(command);
+        }
+      } catch (e) {
+        console.log(`[API] JSON 파싱 실패:`, e);
+      }
+      throw new Error(errorMessage);
     }
 
-    // JSON 응답이 있는 경우에만 파싱
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json();
+    const result = await response.json();
+    console.log(`[API] CRUD 성공 응답:`, result);
+    return result;
+  }
+
+  async executeCRUDAdmin(command: any): Promise<any> {
+    console.log(`[API] POST ${this.baseUrl}/ai/execute-crud/admin (관리자 API)`);
+    console.log(`[API] CRUD 명령:`, command);
+    
+    const response = await fetch(`${this.baseUrl}/ai/execute-crud/admin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(command),
+    });
+
+    console.log(`[API] 관리자 API 응답 상태:`, response.status, response.statusText);
+
+    if (!response.ok) {
+      let errorMessage = `관리자 CRUD 실행 실패: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        console.log(`[API] 관리자 API 에러 데이터:`, errorData);
+        if (errorData.detail) {
+          errorMessage += ` - ${errorData.detail}`;
+        }
+      } catch (e) {
+        console.log(`[API] 관리자 API JSON 파싱 실패:`, e);
+      }
+      throw new Error(errorMessage);
     }
 
-    return { success: true };
+    const result = await response.json();
+    console.log(`[API] 관리자 CRUD 성공 응답:`, result);
+    return result;
   }
 
   async getEntities(entityType: string): Promise<any[]> {
     const response = await fetch(`${this.baseUrl}/${entityType}/`, {
       headers: {
+        ...this.getHeaders(),
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
       }

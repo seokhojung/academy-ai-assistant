@@ -182,6 +182,7 @@ export default function DashboardPage() {
               });
             }}
           />
+
         </KPIGrid>
 
         {/* AI 어시스턴트 + 채팅창 통합 넓은 카드 */}

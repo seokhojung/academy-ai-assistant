@@ -33,6 +33,23 @@ export default function StudentsPage() {
     fetchStudents();
   }, []);
 
+  // AI 챗봇에서 데이터 변경 시 자동 갱신
+  useEffect(() => {
+    const handleDataUpdate = (event: CustomEvent) => {
+      const { entity, action } = event.detail;
+      if (entity === 'student') {
+        console.log(`[StudentsPage] AI 챗봇에서 ${action} 감지, 데이터 갱신`);
+        fetchStudents();
+      }
+    };
+
+    window.addEventListener('dataUpdated', handleDataUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate as EventListener);
+    };
+  }, []);
+
   const fetchStudents = async () => {
     setIsLoading(true);
     try {

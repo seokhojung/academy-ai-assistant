@@ -407,7 +407,10 @@ export default function AIChatPage() {
                             </div>
                           ) : (
                             <>
-                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                              <div 
+                                className="text-sm whitespace-pre-wrap [&_table]:w-full [&_table]:border-collapse [&_table]:my-2 [&_th]:border [&_th]:border-gray-300 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-gray-50 [&_th]:text-left [&_td]:border [&_td]:border-gray-300 [&_td]:px-2 [&_td]:py-1 [&_tr:nth-child(even)]:bg-gray-50"
+                                dangerouslySetInnerHTML={{ __html: message.content }}
+                              />
                               <p className={`text-xs mt-1 ${
                                 message.isUser ? 'text-blue-100' : 'text-gray-500'
                               }`}>

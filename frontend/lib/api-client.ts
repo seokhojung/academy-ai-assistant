@@ -1,3 +1,5 @@
+import { AIResponse, ChatResponse } from '../src/types/ai';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface ApiResponse<T> {
@@ -249,8 +251,8 @@ class ApiClient {
   }
 
   // AI 채팅 API (인증 필요)
-  async sendChatMessage(message: string, token: string) {
-    return this.request('/api/v1/ai/chat', {
+  async sendChatMessage(message: string, token: string): Promise<ApiResponse<ChatResponse>> {
+    return this.request<ChatResponse>('/api/v1/ai/chat', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -260,8 +262,8 @@ class ApiClient {
   }
 
   // AI 채팅 API (테스트용, 인증 없음)
-  async sendChatMessageTest(message: string) {
-    return this.request('/api/v1/ai/chat/test', {
+  async sendChatMessageTest(message: string): Promise<ApiResponse<ChatResponse>> {
+    return this.request<ChatResponse>('/api/v1/ai/chat/test', {
       method: 'POST',
       body: JSON.stringify({ message }),
     });
