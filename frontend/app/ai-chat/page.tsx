@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '../../lib/api-client';
+import type { ApiClient } from '../../src/commands';
 import { Send, Bot, User, Loader2, Trash2, Download, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { aiApi } from '../../lib/api';
+import { parseAIResponse, isCRUDCommand } from '@/lib/ai-utils';
 
 interface Message {
   id: string;
@@ -164,9 +166,101 @@ export default function AIChatPage() {
       const messagesWithoutLoading = newMessages.filter(msg => !msg.isLoading);
 
       if (response && response.response) {
+        // AI 응답 파싱
+        const aiResponseText = typeof response.response === 'string' ? response.response : 'AI 응답을 받았습니다.';
+        
+        // CRUD 명령 처리
+        try {
+          const parsedResponse = parseAIResponse(aiResponseText);
+          // 배열인 경우 첫 번째 요소 사용
+          const response = Array.isArray(parsedResponse) ? parsedResponse[0] : parsedResponse;
+          
+          if (isCRUDCommand(response)) {
+            // CRUD 명령 실행
+            console.log('CRUD 명령 감지:', response);
+            
+            try {
+              const crudResult = await apiClient.executeCRUD(response.content);
+              console.log('CRUD 실행 결과:', crudResult);
+              
+              // 성공 메시지 추가
+              const successMessage: Message = {
+                id: (Date.now() + 3).toString(),
+                content: `✅ ${(response as any).confirmation || '데이터가 성공적으로 수정되었습니다.'}`,
+                isUser: false,
+                timestamp: new Date()
+              };
+              
+              const aiMessage: Message = {
+                id: (Date.now() + 2).toString(),
+                content: aiResponseText,
+                isUser: false,
+                timestamp: new Date()
+              };
+              
+              const finalMessages = [...messagesWithoutLoading, aiMessage, successMessage];
+              setMessages(finalMessages);
+              
+              // 세션 업데이트
+              const finalUpdatedSessions = chatSessions.map(s => 
+                s.id === currentSessionId 
+                  ? { ...s, messages: finalMessages }
+                  : s
+              );
+              saveChatSessions(finalUpdatedSessions);
+              
+              toast({
+                title: "수정 완료",
+                description: "데이터가 성공적으로 수정되었습니다.",
+              });
+              
+              return; // CRUD 처리 완료
+            } catch (crudError) {
+              console.error('CRUD 실행 실패:', crudError);
+              
+              // 실패 메시지 추가
+              const errorMessage: Message = {
+                id: (Date.now() + 3).toString(),
+                content: `❌ 데이터 수정에 실패했습니다: ${crudError instanceof Error ? crudError.message : '알 수 없는 오류'}`,
+                isUser: false,
+                timestamp: new Date()
+              };
+              
+              const aiMessage: Message = {
+                id: (Date.now() + 2).toString(),
+                content: aiResponseText,
+                isUser: false,
+                timestamp: new Date()
+              };
+              
+              const finalMessages = [...messagesWithoutLoading, aiMessage, errorMessage];
+              setMessages(finalMessages);
+              
+              // 세션 업데이트
+              const finalUpdatedSessions = chatSessions.map(s => 
+                s.id === currentSessionId 
+                  ? { ...s, messages: finalMessages }
+                  : s
+              );
+              saveChatSessions(finalUpdatedSessions);
+              
+              toast({
+                title: "수정 실패",
+                description: "데이터 수정에 실패했습니다.",
+                variant: "destructive",
+              });
+              
+              return; // CRUD 처리 완료
+            }
+          }
+        } catch (parseError) {
+          console.warn('AI 응답 파싱 실패 (일반 응답으로 처리):', parseError);
+        }
+        
+        // 일반 AI 응답 처리
         const aiMessage: Message = {
           id: (Date.now() + 2).toString(),
-          content: typeof response.response === 'string' ? response.response : 'AI 응답을 받았습니다.',
+          content: aiResponseText,
           isUser: false,
           timestamp: new Date()
         };
@@ -181,41 +275,20 @@ export default function AIChatPage() {
         );
         saveChatSessions(finalUpdatedSessions);
       } else {
-        // API 오류인 경우 임시 응답 제공
-        const tempResponse = generateTempResponse(inputMessage);
-        const aiMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          content: tempResponse,
-          isUser: false,
-          timestamp: new Date()
-        };
-        
-        const finalMessages = [...messagesWithoutLoading, aiMessage];
-        setMessages(finalMessages);
-        // 세션 업데이트
-        const finalUpdatedSessions = chatSessions.map(s => 
-          s.id === currentSessionId 
-            ? { ...s, messages: finalMessages }
-            : s
-        );
-        saveChatSessions(finalUpdatedSessions);
-        toast({
-          title: "AI 응답",
-          description: "현재 AI 서비스 점검 중입니다. 임시 응답을 제공합니다.",
-          variant: "info",
-        });
+        throw new Error('AI 응답이 올바르지 않습니다.');
       }
     } catch (error) {
-      // 로딩 메시지 제거
-      const messagesWithoutLoading = messages.filter(msg => !msg.isLoading);
+      console.error('AI 채팅 오류:', error);
       
+      // 에러 메시지 추가
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
-        content: '죄송합니다. 현재 AI 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+        content: `죄송합니다. 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
         isUser: false,
         timestamp: new Date()
       };
       
+      const messagesWithoutLoading = newMessages.filter(msg => !msg.isLoading);
       const finalMessages = [...messagesWithoutLoading, errorMessage];
       setMessages(finalMessages);
       
@@ -228,31 +301,12 @@ export default function AIChatPage() {
       saveChatSessions(finalUpdatedSessions);
       
       toast({
-        title: "연결 오류",
-        description: "AI 서비스 연결에 실패했습니다.",
+        title: "오류 발생",
+        description: "AI 서비스에 문제가 발생했습니다.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 임시 응답 생성 함수 (인증 문제 해결 전까지 사용)
-  const generateTempResponse = (message: string): string => {
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('학생') || lowerMessage.includes('student')) {
-      return '학생 관리 기능에 대해 안내드리겠습니다. 학생 등록, 정보 수정, 출석 관리 등을 할 수 있습니다. 대시보드에서 "학생 관리" 메뉴를 클릭하시면 됩니다.';
-    } else if (lowerMessage.includes('강사') || lowerMessage.includes('teacher')) {
-      return '강사 관리 기능에 대해 안내드리겠습니다. 강사 등록, 스케줄 관리, 강의 현황 등을 확인할 수 있습니다. 대시보드에서 "강사 관리" 메뉴를 클릭하시면 됩니다.';
-    } else if (lowerMessage.includes('교재') || lowerMessage.includes('material')) {
-      return '교재 관리 기능에 대해 안내드리겠습니다. 교재 등록, 재고 관리, 교재별 학생 현황 등을 확인할 수 있습니다. 대시보드에서 "교재 관리" 메뉴를 클릭하시면 됩니다.';
-    } else if (lowerMessage.includes('수강료') || lowerMessage.includes('tuition')) {
-      return '수강료 관리 기능에 대해 안내드리겠습니다. 수강료 납부 현황, 미납 학생 관리, 납부 일정 등을 확인할 수 있습니다.';
-    } else if (lowerMessage.includes('안녕') || lowerMessage.includes('hello')) {
-      return '안녕하세요! 학원 관리 시스템에 오신 것을 환영합니다. 무엇을 도와드릴까요?';
-    } else {
-      return '죄송합니다. 현재 AI 서비스 점검 중입니다. 학생 관리, 강사 관리, 교재 관리 등에 대해 질문해주시면 도움을 드리겠습니다.';
     }
   };
 
@@ -263,199 +317,244 @@ export default function AIChatPage() {
     }
   };
 
-  // 채팅 내보내기
   const exportChat = () => {
-    const chatData = {
-      session: chatSessions.find(s => s.id === currentSessionId),
-      exportDate: new Date().toISOString()
-    };
+    const chatText = messages
+      .map(msg => `${msg.isUser ? '사용자' : 'AI'}: ${msg.content}`)
+      .join('\n\n');
     
-    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([chatText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `chat-${currentSessionId}.json`;
+    a.download = `chat-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
+  const importChat = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const lines = content.split('\n');
+        const importedMessages: Message[] = [];
+        
+        lines.forEach((line, index) => {
+          if (line.trim()) {
+            const isUser = line.startsWith('사용자:');
+            const messageContent = line.replace(/^(사용자|AI): /, '');
+            
+            importedMessages.push({
+              id: `imported-${index}`,
+              content: messageContent,
+              isUser,
+              timestamp: new Date()
+            });
+          }
+        });
+        
+        if (importedMessages.length > 0) {
+          setMessages(importedMessages);
+          updateSessionTitle(currentSessionId, '가져온 대화');
+          
+          const updatedSessions = chatSessions.map(s => 
+            s.id === currentSessionId 
+              ? { ...s, messages: importedMessages }
+              : s
+          );
+          saveChatSessions(updatedSessions);
+          
+          toast({
+            title: "가져오기 완료",
+            description: "채팅 내용을 성공적으로 가져왔습니다.",
+          });
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="flex gap-6 h-[calc(100vh-200px)]">
-        {/* 사이드바 - 채팅 세션 목록 */}
-        <div className="w-80 flex-shrink-0">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">대화 목록</h2>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={createNewSession}
-                    size="sm"
-                    variant="outline"
-                  >
-                    새 대화
-                  </Button>
-                  <Button
-                    onClick={() => setShowSessions(!showSessions)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    {showSessions ? '접기' : '펼치기'}
-                  </Button>
-                </div>
-              </div>
-              
-              {showSessions && (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {chatSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                        currentSessionId === session.id
-                          ? 'bg-blue-100 border border-blue-300'
-                          : 'bg-gray-50 hover:bg-gray-100'
-                      }`}
-                      onClick={() => loadSession(session.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{session.title}</p>
-                          <p className="text-xs text-gray-500">
-                            {session.createdAt.toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteSession(session.id);
-                          }}
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* 헤더 */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            AI 챗봇
+          </h1>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowSessions(!showSessions)}
+              variant="outline"
+              size="sm"
+            >
+              대화 목록
+            </Button>
+            <Button
+              onClick={createNewSession}
+              variant="outline"
+              size="sm"
+            >
+              새 대화
+            </Button>
+            <Button
+              onClick={exportChat}
+              variant="outline"
+              size="sm"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              내보내기
+            </Button>
+            <label className="cursor-pointer">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <span>
+                  <Upload className="w-4 h-4 mr-2" />
+                  가져오기
+                </span>
+              </Button>
+              <input
+                type="file"
+                accept=".txt"
+                onChange={importChat}
+                className="hidden"
+              />
+            </label>
+          </div>
         </div>
 
-        {/* 메인 채팅 영역 */}
-        <div className="flex-1 flex flex-col">
-          <motion.div 
-            className="mb-4"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <Bot className="w-8 h-8 text-blue-600" />
-                  AI 채팅
-                </h1>
-                <p className="text-gray-600">AI와 대화하여 학습에 도움을 받아보세요.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={exportChat}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  내보내기
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-
-          <Card className="flex-1">
-            <CardContent className="p-4 h-full flex flex-col">
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-                <AnimatePresence>
-                  {messages.map((message, index) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className="flex items-start gap-2 max-w-[70%]">
-                        {!message.isUser && (
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Bot className="w-4 h-4 text-blue-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* 채팅 세션 사이드바 */}
+          {showSessions && (
+            <motion.div
+              initial={{ x: -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -300, opacity: 0 }}
+              className="lg:col-span-1"
+            >
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-4">대화 목록</h3>
+                  <div className="space-y-2">
+                    {chatSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                          currentSessionId === session.id
+                            ? 'bg-blue-100 dark:bg-blue-900'
+                            : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                        onClick={() => loadSession(session.id)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {session.title}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {new Date(session.createdAt).toLocaleDateString()}
+                            </p>
                           </div>
-                        )}
-                        
-                        <div
-                          className={`p-3 rounded-lg ${
-                            message.isUser
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-100 text-gray-900'
-                          }`}
-                        >
-                          {message.isLoading ? (
-                            <div className="flex items-center gap-2">
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <p className="text-sm">AI가 응답을 생성하고 있습니다...</p>
-                            </div>
-                          ) : (
-                            <>
-                              <div 
-                                className="text-sm whitespace-pre-wrap [&_table]:w-full [&_table]:border-collapse [&_table]:my-2 [&_th]:border [&_th]:border-gray-300 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-gray-50 [&_th]:text-left [&_td]:border [&_td]:border-gray-300 [&_td]:px-2 [&_td]:py-1 [&_tr:nth-child(even)]:bg-gray-50"
-                                dangerouslySetInnerHTML={{ __html: message.content }}
-                              />
-                              <p className={`text-xs mt-1 ${
-                                message.isUser ? 'text-blue-100' : 'text-gray-500'
-                              }`}>
-                                {message.timestamp.toLocaleTimeString()}
-                              </p>
-                            </>
-                          )}
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSession(session.id);
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                        
-                        {message.isUser && (
-                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-white" />
-                          </div>
-                        )}
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                
-                <div ref={messagesEndRef} />
-              </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
-              <div className="flex gap-2">
-                <Input
-                  value={inputMessage}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="메시지를 입력하세요... (Enter로 전송)"
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isLoading}
-                  className="px-4"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* 메인 채팅 영역 */}
+          <div className={`${showSessions ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
+            <Card className="h-[600px] flex flex-col">
+              <CardContent className="flex-1 p-4 overflow-hidden">
+                {/* 메시지 영역 */}
+                <div className="h-full overflow-y-auto space-y-4 mb-4">
+                  <AnimatePresence>
+                    {messages.map((message) => (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-sm
+                            ${message.isUser
+                              ? 'bg-gradient-to-tr from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 text-gray-900 dark:text-white rounded-br-md'
+                              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-md'}
+                          `}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            {message.isUser ? (
+                              <User className="w-4 h-4 text-blue-500 dark:text-blue-300" />
+                            ) : (
+                              <Bot className="w-4 h-4 text-indigo-500 dark:text-indigo-300" />
+                            )}
+                            <span className="font-medium">
+                              {message.isUser ? '나' : 'AI'}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {message.isLoading ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>AI가 응답을 생성하고 있습니다...</span>
+                              </div>
+                            ) : (
+                              <div className="whitespace-pre-wrap">{message.content}</div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* 입력 영역 */}
+                <div className="flex gap-2">
+                  <Input
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="메시지를 입력하세요..."
+                    className="flex-1"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={isLoading || !inputMessage.trim()}
+                    className="px-6"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

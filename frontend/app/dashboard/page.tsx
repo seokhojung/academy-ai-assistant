@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Users, GraduationCap, BookOpen, Calendar, Bot } from 'lucide-react';
 import { Calendar as CalendarComponent } from '@/components/ui/Calendar';
 import { Chart, GradeChart, AttendanceChart } from '@/components/ui/Chart';
-import AIChatBox from '../../components/ai-chat-box';
+import AIChatBox from '@/components/ai-chat/AIChatBox';
 
 interface DashboardStats {
   students: number;

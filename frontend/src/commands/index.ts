@@ -5,6 +5,7 @@ export interface ApiClient {
   updateEntity(entityType: string, id: number, data: any): Promise<any>;
   createEntity(entityType: string, data: any): Promise<any>;
   deleteEntity(entityType: string, id: number): Promise<any>;
+  executeCRUD(command: any): Promise<any>;
 }
 
 // 편집 Command

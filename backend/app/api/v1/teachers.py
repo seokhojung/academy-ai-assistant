@@ -8,7 +8,7 @@ from app.services.teacher_service import TeacherService
 
 router = APIRouter()
 
-@router.get("/", response_model=List[Teacher], summary="강사 목록 조회")
+@router.get("/", summary="강사 목록 조회")
 def get_teachers(
     skip: int = 0,
     limit: int = 100,
@@ -18,7 +18,7 @@ def get_teachers(
     """강사 목록을 조회합니다."""
     statement = select(Teacher).offset(skip).limit(limit)
     teachers = session.exec(statement).all()
-    return teachers
+    return {"teachers": teachers}
 
 @router.get("/{teacher_id}", response_model=Teacher, summary="강사 상세 조회")
 def get_teacher(

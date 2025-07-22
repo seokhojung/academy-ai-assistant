@@ -30,8 +30,59 @@ class Settings:
     firebase_api_key: str = str(config("FIREBASE_API_KEY", default=""))
     firebase_project_id: str = str(config("FIREBASE_PROJECT_ID", default=""))
     
+    # AI API 설정
+    ai_model: str = str(config("AI_MODEL", default="openai"))  # "gemini" 또는 "openai"
+    
     # Gemini API
-    gemini_api_key: str = str(config("GEMINI_API_KEY", default="your-gemini-api-key"))
+    gemini_api_key: str = str(config("GEMINI_API_KEY", default=""))
+    
+    # OpenAI API
+    openai_api_key: str = str(config("OPENAI_API_KEY", default=""))
+    openai_model: str = str(config("OPENAI_MODEL", default="gpt-3.5-turbo"))
+    openai_max_tokens: int = config("OPENAI_MAX_TOKENS", default=2000, cast=int)
+    openai_temperature: float = config("OPENAI_TEMPERATURE", default=0.7, cast=float)
+    openai_top_p: float = config("OPENAI_TOP_P", default=1.0, cast=float)
+    openai_frequency_penalty: float = config("OPENAI_FREQUENCY_PENALTY", default=0.0, cast=float)
+    openai_presence_penalty: float = config("OPENAI_PRESENCE_PENALTY", default=0.0, cast=float)
+    
+    @property
+    def is_ai_enabled(self) -> bool:
+        """AI 서비스 활성화 여부"""
+        if self.ai_model == "gemini":
+            return bool(self.gemini_api_key and self.gemini_api_key != "")
+        elif self.ai_model == "openai":
+            return bool(self.openai_api_key and self.openai_api_key != "")
+        return False
+    
+    @property
+    def current_ai_model(self) -> str:
+        """현재 사용 중인 AI 모델"""
+        return self.ai_model
+    
+    @property
+    def current_ai_config(self) -> dict:
+        """현재 AI 서비스 설정"""
+        if self.ai_model == "gemini":
+            return {
+                "model_type": "gemini",
+                "api_key": self.gemini_api_key
+            }
+        elif self.ai_model == "openai":
+            return {
+                "model_type": "openai",
+                "api_key": self.openai_api_key,
+                "model": self.openai_model,
+                "max_tokens": self.openai_max_tokens,
+                "temperature": self.openai_temperature,
+                "top_p": self.openai_top_p,
+                "frequency_penalty": self.openai_frequency_penalty,
+                "presence_penalty": self.openai_presence_penalty
+            }
+        else:
+            return {
+                "model_type": "gemini",
+                "api_key": self.gemini_api_key
+            }
     
     # Google Cloud Storage
     gcs_bucket_name: str = str(config("GCS_BUCKET_NAME", default="academy-ai-assistant-files"))

@@ -11,8 +11,13 @@ interface AIChatMessageProps {
 
 const AIChatMessage: React.FC<AIChatMessageProps> = ({ message }) => {
   const renderContent = () => {
+    console.log('[AIChatMessage] renderContent 시작');
+    console.log('[AIChatMessage] message.isUser:', message.isUser);
+    console.log('[AIChatMessage] message.content 타입:', typeof message.content);
+    
     if (message.isUser) {
       // 사용자 메시지는 단순 텍스트로 렌더링
+      console.log('[AIChatMessage] 사용자 메시지 렌더링');
       return <span className="whitespace-pre-line">{message.content as string}</span>;
     }
 
@@ -21,14 +26,18 @@ const AIChatMessage: React.FC<AIChatMessageProps> = ({ message }) => {
     
     if (typeof message.content === 'string') {
       // 문자열인 경우 파싱 시도
+      console.log('[AIChatMessage] 원본 메시지:', message.content.substring(0, 200) + '...');
       aiResponse = parseAIResponse(message.content);
+      console.log('[AIChatMessage] 파싱된 응답:', aiResponse);
     } else {
       // 이미 AIResponse 객체인 경우
+      console.log('[AIChatMessage] 이미 AIResponse 객체:', message.content);
       aiResponse = message.content;
     }
 
     // 여러 응답이 있는 경우
     if (Array.isArray(aiResponse)) {
+      console.log('[AIChatMessage] 여러 응답 처리:', aiResponse.length);
       return (
         <div className="space-y-4">
           {aiResponse.map((response, index) => {
@@ -44,29 +53,40 @@ const AIChatMessage: React.FC<AIChatMessageProps> = ({ message }) => {
     }
 
     // 단일 응답 처리
+    console.log('[AIChatMessage] 단일 응답 처리 시작');
     const sanitizedResponse = sanitizeAIResponse(aiResponse);
+    console.log('[AIChatMessage] sanitizedResponse:', sanitizedResponse);
     return renderSingleResponse(sanitizedResponse);
   };
 
   const renderSingleResponse = (response: AIResponse) => {
+    console.log('[AIChatMessage] 렌더링할 응답 타입:', response.type);
+    console.log('[AIChatMessage] 응답 전체:', response);
+    
     switch (response.type) {
       case 'table_data':
+        console.log('[AIChatMessage] 테이블 데이터 렌더링 시작');
         return <TableMessage data={response as AIResponse & { content: any }} />;
       
       case 'text':
+        console.log('[AIChatMessage] 텍스트 데이터 렌더링');
         return <TextMessage data={response as AIResponse & { content: string }} />;
       
       case 'analysis':
+        console.log('[AIChatMessage] 분석 데이터 렌더링');
         return <AnalysisMessage data={response as AIResponse & { content: any }} />;
       
       case 'command':
+        console.log('[AIChatMessage] 명령 데이터 렌더링');
         return <CommandMessage data={response as AIResponse & { content: any }} />;
       
       case 'crud_command':
         // CRUD 명령은 백엔드에서 자동 처리되므로 텍스트로 표시
+        console.log('[AIChatMessage] CRUD 명령 처리');
         return <TextMessage data={{ type: 'text', content: '데이터 수정을 처리 중입니다...' } as AIResponse & { content: string }} />;
       
       default:
+        console.log('[AIChatMessage] 알 수 없는 응답 형식:', response.type);
         return <TextMessage data={{ type: 'text', content: '알 수 없는 응답 형식입니다.' } as AIResponse & { content: string }} />;
     }
   };
@@ -98,6 +118,9 @@ const AIChatMessage: React.FC<AIChatMessageProps> = ({ message }) => {
 
 // 테이블 메시지 컴포넌트
 const TableMessage: React.FC<{ data: AIResponse & { content: any } }> = ({ data }) => {
+  console.log('[TableMessage] 테이블 데이터:', data);
+  console.log('[TableMessage] content:', data.content);
+  
   return (
     <div className="space-y-3">
       {data.content.title && (
@@ -108,7 +131,7 @@ const TableMessage: React.FC<{ data: AIResponse & { content: any } }> = ({ data 
       <DataTable 
         data={data.content} 
         styleOptions={{ 
-          striped: true, 
+          striped: false, 
           hover: true, 
           bordered: true, 
           responsive: true 

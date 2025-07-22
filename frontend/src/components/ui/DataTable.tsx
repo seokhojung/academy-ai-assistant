@@ -12,6 +12,9 @@ const DataTable: React.FC<DataTableProps> = ({
   styleOptions = {}, 
   className = "" 
 }) => {
+  console.log('[DataTable] 받은 데이터:', data);
+  console.log('[DataTable] headers:', data.headers);
+  console.log('[DataTable] rows:', data.rows);
   const {
     striped = true,
     hover = true,
@@ -28,25 +31,25 @@ const DataTable: React.FC<DataTableProps> = ({
 
   const tableClasses = [
     'w-full border-collapse',
-    bordered ? 'border border-gray-200' : '',
+    bordered ? 'border border-gray-300' : '',
     sizeClasses[size],
     className
   ].filter(Boolean).join(' ');
 
   const headerClasses = [
-    'px-4 py-3 text-left font-medium text-gray-700',
-    bordered ? 'border-b border-gray-200' : '',
-    'bg-gray-50'
+    'px-4 py-3 text-left font-semibold text-gray-800 dark:text-gray-200',
+    bordered ? 'border-b border-gray-300 dark:border-gray-600' : '',
+    'bg-blue-50 dark:bg-blue-900/20'
   ].filter(Boolean).join(' ');
 
   const cellClasses = [
-    'px-4 py-3 text-gray-900',
-    bordered ? 'border-b border-gray-100' : ''
+    'px-4 py-3 text-gray-700 dark:text-gray-300',
+    bordered ? 'border-b border-gray-200 dark:border-gray-700' : ''
   ].filter(Boolean).join(' ');
 
   const rowClasses = (index: number) => [
-    hover ? 'hover:bg-gray-50 transition-colors' : '',
-    striped && index % 2 === 1 ? 'bg-gray-50' : ''
+    hover ? 'hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors' : '',
+    striped && index % 2 === 1 ? 'bg-gray-50 dark:bg-gray-800/50' : ''
   ].filter(Boolean).join(' ');
 
   const TableComponent = (
@@ -60,7 +63,7 @@ const DataTable: React.FC<DataTableProps> = ({
           ))}
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
+      <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
         {data.rows.map((row, rowIndex) => (
           <tr key={rowIndex} className={rowClasses(rowIndex)}>
             {row.map((cell, cellIndex) => (
@@ -76,7 +79,7 @@ const DataTable: React.FC<DataTableProps> = ({
           <tr>
             <td 
               colSpan={data.headers.length} 
-              className="px-4 py-2 text-sm text-gray-600 bg-gray-50 border-t border-gray-200"
+              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
             >
               {data.footer}
             </td>
@@ -88,7 +91,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
   if (responsive) {
     return (
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+      <div className="overflow-x-auto border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
         {TableComponent}
       </div>
     );
