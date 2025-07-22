@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 from typing import Dict, Any, Optional
 import asyncio
 import json
@@ -8,69 +8,60 @@ import google.generativeai as genai
 from app.core.database import get_session
 from app.core.auth import AuthService
 from app.core.config import settings
+from app.models.student import Student
+from app.models.teacher import Teacher
+from app.models.material import Material
+from app.models.lecture import Lecture
 from pydantic import BaseModel
+from app.ai.core.context_builder import ContextBuilder
+from app.ai.services.ai_service_factory import AIServiceFactory
+from app.ai.core.prompt_factory import PromptFactory
+
+# 새로운 통합 AI 서비스 import
+try:
+    ai_service = AIServiceFactory.create_service(settings.current_ai_config)
+    print("[AI] 새로운 통합 AI 시스템 로드됨")
+except Exception as e:
+    print(f"[AI] 새로운 AI 시스템 로드 실패: {e}")
+    raise Exception(f"AI 시스템 초기화 실패: {e}")
 
 router = APIRouter()
 
-# Gemini API 설정
-genai.configure(api_key=settings.gemini_api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-async def call_gemini_api(message: str) -> str:
-    """Gemini API 호출 (실제 구현)"""
+async def call_ai_api(message: str, session: Optional[Session] = None) -> str:
+    """AI API 호출 (새로운 ContextBuilder 사용)"""
     try:
-        # 시스템 프롬프트(역할/권한/개인정보 제한 없음) 추가
-        system_prompt = """
-        너는 학원 관리 시스템의 관리자 전용 AI 어시스턴트다.
-        이 시스템은 내부 관리자만 접근 가능하며, 학생/강사/교재 등 모든 데이터를 자유롭게 조회/수정/삭제할 수 있다.
-        개인정보 보호는 외부 노출에만 해당되며, 내부 요청에는 제한을 두지 않는다.
-        관리자 요청에는 학생 목록, 강사 목록, 교재 정보 등 모든 데이터를 상세하게 제공해야 한다.
-        """
-        prompt = f"""
-        {system_prompt}
-        사용자의 질문: {message}
-
-        답변 형식:
-        1. 질문에 대한 직접적인 답변
-        2. 추가적인 도움말이나 제안사항
-        3. 관련된 시스템 기능 안내
-        """
-        # Gemini API 호출
-        response = model.generate_content(prompt)
-        if response.text:
-            return response.text
-        else:
-            return "죄송합니다. 현재 응답을 생성할 수 없습니다."
+        # ContextBuilder를 사용하여 데이터 조회
+        context_data = await ContextBuilder.build_context(session)
+        print(f"[AI] ContextBuilder에서 조회된 데이터: {list(context_data.keys())}")
+        
+        # 키워드 기반 필터링
+        filtered_context = ContextBuilder.filter_context_by_keywords(context_data, message)
+        print(f"[AI] 필터링된 컨텍스트: {list(filtered_context.keys())}")
+        
+        # AI 서비스를 통해 응답 생성
+        response = await ai_service.generate_response(message, session)
+        print(f"[AI] AI 응답 생성 완료: {len(response)} 문자")
+        
+        return response
+        
     except Exception as e:
-        print(f"Gemini API 호출 오류: {e}")
+        print(f"[AI] AI API 호출 오류: {e}")
         return f"AI 서비스 오류가 발생했습니다: {str(e)}"
 
-async def call_gemini_api_stream(message: str):
-    """Gemini API 스트리밍 호출"""
+async def call_ai_api_stream(message: str, session: Optional[Session] = None):
+    """AI API 스트리밍 호출"""
     try:
-        # 프롬프트 설정
-        prompt = f"""
-        당신은 학원 관리 시스템의 AI 어시스턴트입니다.
-        사용자의 질문에 대해 친절하고 정확하게 답변해주세요.
+        # ContextBuilder를 사용하여 데이터 조회
+        context_data = await ContextBuilder.build_context(session)
+        filtered_context = ContextBuilder.filter_context_by_keywords(context_data, message)
         
-        사용자 질문: {message}
-        
-        답변 형식:
-        1. 질문에 대한 직접적인 답변
-        2. 추가적인 도움말이나 제안사항
-        3. 관련된 시스템 기능 안내
-        """
-        
-        # Gemini API 스트리밍 호출
-        response = model.generate_content(prompt, stream=True)
-        
-        for chunk in response:
-            if chunk.text:
-                yield f"data: {json.dumps({'content': chunk.text})}\n\n"
-                await asyncio.sleep(0.1)  # 자연스러운 스트리밍을 위한 지연
+        # AI 서비스를 통해 스트리밍 응답 생성
+        async for chunk in ai_service.generate_response_stream(message, session):
+            yield f"data: {json.dumps({'content': chunk})}\n\n"
+            await asyncio.sleep(0.1)
                 
     except Exception as e:
-        print(f"Gemini API 스트리밍 오류: {e}")
+        print(f"[AI] AI API 스트리밍 오류: {e}")
         yield f"data: {json.dumps({'error': f'AI 서비스 오류: {str(e)}'})}\n\n"
 
 def generate_temp_response(message: str) -> str:
@@ -185,23 +176,17 @@ async def chat_with_ai(
 ):
     """AI와 채팅합니다."""
     try:
-        response = await call_gemini_api(message)
+        response = await call_ai_api(message, session)
         return {"response": response, "user_id": current_user.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 서비스 오류: {str(e)}")
 
 @router.post("/chat/test", summary="AI 채팅 테스트 (인증 없음)")
-async def chat_with_ai_test(req: ChatRequest):
+async def chat_with_ai_test(req: ChatRequest, session: Session = Depends(get_session)):
     """AI와 채팅합니다. (테스트용, 인증 없음)"""
     try:
-        # 환경변수 확인 로그
-        key = settings.gemini_api_key
-        print(f"[DEBUG] GEMINI_API_KEY: {key[:4]}...{key[-4:]}")
-        # Gemini API가 설정되어 있으면 실제 API 호출, 없으면 임시 응답
-        if key and key != "your-gemini-api-key":
-            response = await call_gemini_api(req.message)
-        else:
-            response = generate_temp_response(req.message)
+        # 새로운 통합 AI 서비스 사용
+        response = await call_ai_api(req.message, session)
         return {"response": response, "status": "success"}
     except Exception as e:
         # 오류 발생 시에도 임시 응답 제공
@@ -215,7 +200,7 @@ async def chat_with_ai_stream(
 ):
     """AI와 스트리밍 채팅합니다."""
     return StreamingResponse(
-        call_gemini_api_stream(message),
+        call_ai_api_stream(message, session),
         media_type="text/plain",
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
     )
@@ -241,14 +226,14 @@ async def analyze_learning(
         4. 진행도 점수 (progress_score): 0-100 사이의 점수
         """
         
-        # Gemini API로 분석 수행
-        response = model.generate_content(analysis_prompt)
+        # AI API로 분석 수행
+        response = await ai_service.generate_response(analysis_prompt, session)
         
-        if response.text:
+        if response:
             # 응답을 파싱하여 구조화된 데이터로 변환
             try:
                 # 간단한 파싱 (실제로는 더 정교한 파싱 필요)
-                analysis_text = response.text
+                analysis_text = response
                 
                 # 기본 분석 결과 반환
                 analysis_result = {
@@ -266,7 +251,7 @@ async def analyze_learning(
                     "weaknesses": ["영어"],
                     "recommendations": ["영어 학습 시간을 늘리세요"],
                     "progress_score": 75,
-                    "ai_analysis": response.text
+                    "ai_analysis": response
                 }
         else:
             return {
@@ -310,14 +295,14 @@ async def process_natural_language_command(
         }}
         """
         
-        # Gemini API로 명령 파싱
-        response = model.generate_content(command_prompt)
+        # AI API로 명령 파싱
+        response = await ai_service.generate_response(command_prompt, session)
         
-        if response.text:
+        if response:
             try:
                 # JSON 파싱 시도
                 import re
-                json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
                 if json_match:
                     parsed_command = json.loads(json_match.group())
                 else:
@@ -332,7 +317,7 @@ async def process_natural_language_command(
                 return {
                     "original_command": command,
                     "parsed_command": parsed_command,
-                    "ai_response": response.text
+                    "ai_response": response
                 }
             except json.JSONDecodeError:
                 return {
@@ -344,7 +329,7 @@ async def process_natural_language_command(
                         "filters": {},
                         "parameters": {}
                     },
-                    "ai_response": response.text
+                    "ai_response": response
                 }
         else:
             return {
@@ -354,3 +339,205 @@ async def process_natural_language_command(
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"명령 처리 오류: {str(e)}") 
+
+@router.post("/execute-crud", summary="CRUD 명령 실행")
+async def execute_crud_command(
+    command: dict,
+    session: Session = Depends(get_session)
+):
+    """CRUD 명령 실행"""
+    try:
+        print(f"[CRUD] 명령 수신: {command}")
+        
+        # 명령 분석 및 실행
+        if command.get("command_type") == "student":
+            if command["action"] == "create":
+                new_student = Student(
+                    name=command["parameters"]["name"], 
+                    grade=command["parameters"]["grade"], 
+                    email=command["parameters"]["email"]
+                )
+                session.add(new_student)
+                session.commit()
+                return {"success": True, "message": f"학생 '{command['parameters']['name']}' 생성됨"}
+            elif command["action"] == "update":
+                student = session.get(Student, command["parameters"]["id"])
+                if student:
+                    for key, value in command["parameters"].items():
+                        if key != "id" and hasattr(student, key):
+                            setattr(student, key, value)
+                    session.commit()
+                    return {"success": True, "message": f"학생 '{student.name}' 정보 수정됨"}
+                else:
+                    return {"success": False, "message": "학생을 찾을 수 없습니다"}
+            elif command["action"] == "delete":
+                student = session.get(Student, command["parameters"]["id"])
+                if student:
+                    session.delete(student)
+                    session.commit()
+                    return {"success": True, "message": f"학생 '{student.name}' 삭제됨"}
+                else:
+                    return {"success": False, "message": "학생을 찾을 수 없습니다"}
+            elif command["action"] == "get":
+                students = session.exec(select(Student)).all()
+                return {"success": True, "students": [{"id": s.id, "name": s.name, "grade": s.grade} for s in students]}
+            else:
+                return {"success": False, "message": f"지원되지 않는 학생 명령: {command['action']}"}
+                
+        elif command.get("command_type") == "teacher":
+            if command["action"] == "create":
+                new_teacher = Teacher(
+                    name=command["parameters"]["name"], 
+                    subject=command["parameters"]["subject"], 
+                    email=command["parameters"]["email"]
+                )
+                session.add(new_teacher)
+                session.commit()
+                return {"success": True, "message": f"강사 '{command['parameters']['name']}' 생성됨"}
+            elif command["action"] == "update":
+                teacher = session.get(Teacher, command["parameters"]["id"])
+                if teacher:
+                    for key, value in command["parameters"].items():
+                        if key != "id" and hasattr(teacher, key):
+                            setattr(teacher, key, value)
+                    session.commit()
+                    return {"success": True, "message": f"강사 '{teacher.name}' 정보 수정됨"}
+                else:
+                    return {"success": False, "message": "강사를 찾을 수 없습니다"}
+            elif command["action"] == "delete":
+                teacher = session.get(Teacher, command["parameters"]["id"])
+                if teacher:
+                    session.delete(teacher)
+                    session.commit()
+                    return {"success": True, "message": f"강사 '{teacher.name}' 삭제됨"}
+                else:
+                    return {"success": False, "message": "강사를 찾을 수 없습니다"}
+            elif command["action"] == "get":
+                teachers = session.exec(select(Teacher)).all()
+                return {"success": True, "teachers": [{"id": t.id, "name": t.name, "subject": t.subject} for t in teachers]}
+            else:
+                return {"success": False, "message": f"지원되지 않는 강사 명령: {command['action']}"}
+                
+        elif command.get("command_type") == "material":
+            if command["action"] == "create":
+                new_material = Material(
+                    name=command["parameters"]["name"], 
+                    subject=command["parameters"]["subject"], 
+                    grade=command["parameters"]["grade"]
+                )
+                session.add(new_material)
+                session.commit()
+                return {"success": True, "message": f"교재 '{command['parameters']['name']}' 생성됨"}
+            elif command["action"] == "update":
+                material = session.get(Material, command["parameters"]["id"])
+                if material:
+                    for key, value in command["parameters"].items():
+                        if key != "id" and hasattr(material, key):
+                            setattr(material, key, value)
+                    session.commit()
+                    return {"success": True, "message": f"교재 '{material.name}' 정보 수정됨"}
+                else:
+                    return {"success": False, "message": "교재를 찾을 수 없습니다"}
+            elif command["action"] == "delete":
+                material = session.get(Material, command["parameters"]["id"])
+                if material:
+                    session.delete(material)
+                    session.commit()
+                    return {"success": True, "message": f"교재 '{material.name}' 삭제됨"}
+                else:
+                    return {"success": False, "message": "교재를 찾을 수 없습니다"}
+            elif command["action"] == "get":
+                materials = session.exec(select(Material)).all()
+                return {"success": True, "materials": [{"id": m.id, "name": m.name, "subject": m.subject} for m in materials]}
+            else:
+                return {"success": False, "message": f"지원되지 않는 교재 명령: {command['action']}"}
+                
+        elif command.get("command_type") == "lecture":
+            if command["action"] == "create":
+                new_lecture = Lecture(
+                    name=command["parameters"]["name"], 
+                    subject=command["parameters"]["subject"], 
+                    teacher_id=command["parameters"]["teacher_id"]
+                )
+                session.add(new_lecture)
+                session.commit()
+                return {"success": True, "message": f"강의 '{command['parameters']['name']}' 생성됨"}
+            elif command["action"] == "update":
+                lecture = session.get(Lecture, command["parameters"]["id"])
+                if lecture:
+                    for key, value in command["parameters"].items():
+                        if key != "id" and hasattr(lecture, key):
+                            setattr(lecture, key, value)
+                    session.commit()
+                    return {"success": True, "message": f"강의 '{lecture.name}' 정보 수정됨"}
+                else:
+                    return {"success": False, "message": "강의를 찾을 수 없습니다"}
+            elif command["action"] == "delete":
+                lecture = session.get(Lecture, command["parameters"]["id"])
+                if lecture:
+                    session.delete(lecture)
+                    session.commit()
+                    return {"success": True, "message": f"강의 '{lecture.name}' 삭제됨"}
+                else:
+                    return {"success": False, "message": "강의를 찾을 수 없습니다"}
+            elif command["action"] == "get":
+                lectures = session.exec(select(Lecture)).all()
+                return {"success": True, "lectures": [{"id": l.id, "name": l.name, "subject": l.subject} for l in lectures]}
+            else:
+                return {"success": False, "message": f"지원되지 않는 강의 명령: {command['action']}"}
+                
+        elif command.get("command_type") == "tuition":
+            if command["action"] == "get":
+                # 미납 학생 목록 조회 (임시 로직)
+                students = session.exec(select(Student).where(Student.is_active == True, Student.tuition_fee > 0)).all()
+                return {"success": True, "unpaid_students": [{"id": s.id, "name": s.name, "tuition_fee": s.tuition_fee} for s in students]}
+            else:
+                return {"success": False, "message": f"지원되지 않는 수강료 명령: {command['action']}"}
+        else:
+            return {"success": False, "message": f"지원되지 않는 명령 유형: {command['command_type']}"}
+            
+    except Exception as e:
+        print(f"[CRUD] 오류 발생: {e}")
+        raise HTTPException(status_code=500, detail=f"CRUD 명령 처리 오류: {str(e)}") 
+
+@router.get("/prompt/info", summary="현재 지침 정보 조회")
+async def get_prompt_info():
+    """현재 사용 중인 지침 정보 조회"""
+    try:
+        prompt_info = ai_service.get_current_prompt_info()
+        available_prompts = PromptFactory.get_available_prompts()
+        
+        return {
+            "current_prompt": prompt_info,
+            "available_prompts": available_prompts
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"지침 정보 조회 오류: {str(e)}")
+
+@router.post("/prompt/switch", summary="지침 타입 전환")
+async def switch_prompt_type(prompt_type: str = Body(...)):
+    """지침 타입 전환"""
+    try:
+        if prompt_type not in ["original", "optimized"]:
+            raise HTTPException(status_code=400, detail="지원하지 않는 지침 타입입니다")
+        
+        ai_service.switch_prompt_type(prompt_type)
+        
+        return {
+            "success": True,
+            "message": f"지침이 {prompt_type}로 전환되었습니다",
+            "current_prompt": ai_service.get_current_prompt_info()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"지침 전환 오류: {str(e)}")
+
+@router.get("/prompt/compare", summary="지침 비교 리포트")
+async def get_prompt_comparison():
+    """지침 비교 리포트 조회"""
+    try:
+        comparison = ai_service.get_prompt_comparison()
+        return {
+            "comparison": comparison
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"지침 비교 리포트 조회 오류: {str(e)}") 
