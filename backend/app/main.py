@@ -49,6 +49,7 @@ from .api.v1 import lectures  # 강의 관리 라우터
 from .api.v1 import teachers  # 강사 관리 라우터
 from .api.v1 import materials  # 교재 관리 라우터
 from .api.v1 import excel_preview  # 엑셀 미리보기 라우터
+from .api.v1 import init_data  # 샘플 데이터 초기화 라우터
 # from .api.v1 import auth  # 임시 비활성화
 # from .api.v1 import files  # 파일 관리 라우터 - 임시 비활성화
 
@@ -58,6 +59,7 @@ app.include_router(lectures.router, prefix="/api/v1/lectures", tags=["lectures"]
 app.include_router(teachers.router, prefix="/api/v1/teachers", tags=["teachers"])
 app.include_router(materials.router, prefix="/api/v1/materials", tags=["materials"])
 app.include_router(excel_preview.router, prefix="/api/v1/excel-preview", tags=["excel-preview"])
+app.include_router(init_data.router, prefix="/api/v1/init", tags=["init"])
 # app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
 # app.include_router(files.router, prefix="/api/v1/files", tags=["files"])  # 임시 비활성화
