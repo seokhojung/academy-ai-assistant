@@ -30,9 +30,20 @@ router = APIRouter()
 async def call_ai_api(message: str, session: Optional[Session] = None) -> str:
     """AI API 호출 (새로운 ContextBuilder 사용)"""
     try:
+        print(f"[AI] 메시지 수신: {message}")
+        
         # ContextBuilder를 사용하여 데이터 조회
         context_data = await ContextBuilder.build_context(session)
         print(f"[AI] ContextBuilder에서 조회된 데이터: {list(context_data.keys())}")
+        
+        # 각 데이터 타입별 개수 출력
+        for data_type, data_list in context_data.items():
+            if isinstance(data_list, list):
+                print(f"[AI] {data_type}: {len(data_list)}개")
+                if data_list:
+                    print(f"[AI] {data_type} 첫 번째 항목: {data_list[0]}")
+            else:
+                print(f"[AI] {data_type}: {data_list}")
         
         # 키워드 기반 필터링
         filtered_context = ContextBuilder.filter_context_by_keywords(context_data, message)
@@ -46,6 +57,8 @@ async def call_ai_api(message: str, session: Optional[Session] = None) -> str:
         
     except Exception as e:
         print(f"[AI] AI API 호출 오류: {e}")
+        import traceback
+        traceback.print_exc()
         return f"AI 서비스 오류가 발생했습니다: {str(e)}"
 
 async def call_ai_api_stream(message: str, session: Optional[Session] = None):
