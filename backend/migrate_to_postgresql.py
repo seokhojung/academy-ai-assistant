@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.models.student import Student
 from app.models.teacher import Teacher
 from app.models.material import Material
+from app.models.lecture import Lecture
 from app.models.user import User
 
 def backup_sqlite_data():
@@ -19,7 +20,7 @@ def backup_sqlite_data():
     print("SQLite 데이터 백업 중...")
     
     # SQLite 연결
-    sqlite_path = "./academy_ai.db"
+    sqlite_path = "./academy.db"
     if not os.path.exists(sqlite_path):
         print(f"SQLite 파일을 찾을 수 없습니다: {sqlite_path}")
         return None
@@ -135,6 +136,19 @@ def migrate_to_postgresql(backup_data):
                 
                 session.commit()
                 print(f"자료 {len(backup_data['material'])}개 마이그레이션 완료")
+            
+            # 강의 데이터 마이그레이션
+            if 'lecture' in backup_data:
+                print("강의 데이터 마이그레이션 중...")
+                for lecture_data in backup_data['lecture']:
+                    if 'id' in lecture_data:
+                        del lecture_data['id']
+                    
+                    lecture = Lecture(**lecture_data)
+                    session.add(lecture)
+                
+                session.commit()
+                print(f"강의 {len(backup_data['lecture'])}개 마이그레이션 완료")
             
             print("모든 데이터 마이그레이션 완료!")
             
