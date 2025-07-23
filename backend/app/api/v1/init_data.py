@@ -30,10 +30,10 @@ def init_sample_data(session: Session = Depends(get_session)) -> Dict[str, Any]:
         
         # 교재 데이터 추가
         materials_data = [
-            Material(name="중등 수학 기초", subject="수학", grade="중1", author="김수학", publisher="수학출판사"),
-            Material(name="고등 영어 독해", subject="영어", grade="고1", author="이영어", publisher="영어출판사"),
-            Material(name="중등 과학 실험", subject="과학", grade="중2", author="박과학", publisher="과학출판사"),
-            Material(name="고등 국어 문학", subject="국어", grade="고2", author="최국어", publisher="국어출판사"),
+            Material(name="중등 수학 기초", subject="수학", grade="중1", author="김수학"),
+            Material(name="고등 영어 독해", subject="영어", grade="고1", author="이영어"),
+            Material(name="중등 과학 실험", subject="과학", grade="중2", author="박과학"),
+            Material(name="고등 국어 문학", subject="국어", grade="고2", author="최국어"),
         ]
         
         for material in materials_data:
