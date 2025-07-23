@@ -1,11 +1,31 @@
 import { ApiClient } from '../commands';
 
+// 환경별 API Base URL 설정
+const getApiBaseUrl = (): string => {
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:8000/api/v1';  // 로컬 개발 환경
+  }
+  return '/api/v1';  // 웹 배포 환경 (Vercel rewrites 사용)
+};
+
+// 캐시 무효화 헬퍼 (타입 안전하게 처리)
+export const invalidateCache = (entityType: string) => {
+  if (typeof window !== 'undefined') {
+    const globalWindow = window as any;
+    if (globalWindow.queryClient && globalWindow.queryClient.invalidateQueries) {
+      globalWindow.queryClient.invalidateQueries({ queryKey: [entityType] });
+      console.log(`[API] 캐시 무효화: ${entityType}`);
+    }
+  }
+};
+
 // 실제 API 클라이언트 구현
 export class HttpApiClient implements ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:8000/api/v1') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    this.baseUrl = baseUrl || getApiBaseUrl();
+    console.log(`[API Client] 초기화 - Base URL: ${this.baseUrl}`);
   }
 
   // 인증 토큰 가져오기
@@ -54,7 +74,6 @@ export class HttpApiClient implements ApiClient {
   async updateEntity(entityType: string, id: number, data: any): Promise<any> {
     console.log(`[API] PUT ${this.baseUrl}/${entityType}/${id}`);
     console.log(`[API] 전송 데이터:`, data);
-    console.log(`[API] 데이터 타입:`, typeof data);
     
     const response = await fetch(`${this.baseUrl}/${entityType}/${id}`, {
       method: 'PUT',
@@ -62,17 +81,12 @@ export class HttpApiClient implements ApiClient {
       body: JSON.stringify(data),
     });
 
-    console.log(`[API] 응답 상태:`, response.status, response.statusText);
-
     if (!response.ok) {
-      // 더 상세한 에러 정보 제공
       let errorMessage = `Failed to update ${entityType} ${id}: ${response.statusText}`;
       try {
         const errorData = await response.json();
-        console.log(`[API] 에러 데이터:`, errorData);
         if (errorData.detail) {
           if (Array.isArray(errorData.detail)) {
-            // Pydantic 검증 에러의 경우
             const validationErrors = errorData.detail.map((err: any) => 
               `${err.loc?.join('.') || 'unknown'}: ${err.msg}`
             ).join(', ');
@@ -82,14 +96,17 @@ export class HttpApiClient implements ApiClient {
           }
         }
       } catch (e) {
-        // JSON 파싱 실패 시 기본 메시지 사용
         console.log(`[API] JSON 파싱 실패:`, e);
       }
       throw new Error(errorMessage);
     }
 
     const result = await response.json();
-    console.log(`[API] 성공 응답:`, result);
+    
+    // 성공 시 캐시 무효화
+    invalidateCache(entityType);
+    console.log(`[API] 성공 응답 및 캐시 무효화:`, result);
+    
     return result;
   }
 
@@ -103,13 +120,10 @@ export class HttpApiClient implements ApiClient {
       body: JSON.stringify(data),
     });
 
-    console.log(`[API] 응답 상태:`, response.status, response.statusText);
-
     if (!response.ok) {
       let errorMessage = `Failed to create ${entityType}: ${response.statusText}`;
       try {
         const errorData = await response.json();
-        console.log(`[API] 에러 데이터:`, errorData);
         if (errorData.detail) {
           if (Array.isArray(errorData.detail)) {
             const validationErrors = errorData.detail.map((err: any) => 
@@ -127,7 +141,11 @@ export class HttpApiClient implements ApiClient {
     }
 
     const result = await response.json();
-    console.log(`[API] 성공 응답:`, result);
+    
+    // 성공 시 캐시 무효화
+    invalidateCache(entityType);
+    console.log(`[API] 성공 응답 및 캐시 무효화:`, result);
+    
     return result;
   }
 
@@ -140,6 +158,10 @@ export class HttpApiClient implements ApiClient {
     if (!response.ok) {
       throw new Error(`Failed to delete ${entityType} ${id}: ${response.statusText}`);
     }
+
+    // 성공 시 캐시 무효화
+    invalidateCache(entityType);
+    console.log(`[API] 삭제 성공 및 캐시 무효화: ${entityType} ${id}`);
 
     return await response.json();
   }

@@ -46,12 +46,22 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
       
-      // 실제 API 호출로 DB 통계 가져오기
+      // 환경별 API Base URL 설정
+      const getApiBaseUrl = () => {
+        if (process.env.NODE_ENV === 'development') {
+          return 'http://localhost:8000/api/v1';
+        }
+        return '/api/v1';  // Vercel rewrites 사용
+      };
+
+      const apiBase = getApiBaseUrl();
+      console.log(`[Dashboard] API Base URL: ${apiBase}`);
+
       const [studentsRes, teachersRes, materialsRes, lecturesRes] = await Promise.all([
-        fetch('http://localhost:8000/api/v1/students/'),
-        fetch('http://localhost:8000/api/v1/teachers/'),
-        fetch('http://localhost:8000/api/v1/materials/'),
-        fetch('http://localhost:8000/api/v1/lectures/')
+        fetch(`${apiBase}/students/`),
+        fetch(`${apiBase}/teachers/`),
+        fetch(`${apiBase}/materials/`),
+        fetch(`${apiBase}/lectures/`)
       ]);
 
       const studentsData = await studentsRes.json();
