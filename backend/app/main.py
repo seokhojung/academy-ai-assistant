@@ -334,7 +334,7 @@ def force_reset_and_migrate():
             postgres_session.add(student)
         postgres_session.commit()
     
-    # Teachers  
+    # Teachers (9개 컬럼: 0~8)
     with Session(sqlite_engine) as sqlite_session, Session(postgres_engine) as postgres_session:
         teachers = sqlite_session.exec(text("SELECT * FROM teacher")).fetchall()
         print(f"  👨‍🏫 교사: {len(teachers)}개")
@@ -345,43 +345,42 @@ def force_reset_and_migrate():
                 email=row[2] if row[2] else f"teacher{row[0]}@example.com",
                 phone=row[3] if row[3] else "",
                 subject=row[4] if row[4] else "",
-                hire_date=row[5] if isinstance(row[5], datetime) else (datetime.fromisoformat(row[5]) if row[5] and isinstance(row[5], str) else datetime.now()),
-                salary=float(row[6]) if row[6] else 0.0,
-                notes=row[7] if row[7] else "",
-                is_active=bool(row[8]) if row[8] is not None else True,
-                created_at=row[9] if isinstance(row[9], datetime) else (datetime.fromisoformat(row[9]) if row[9] and isinstance(row[9], str) else datetime.now()),
-                updated_at=row[10] if isinstance(row[10], datetime) else (datetime.fromisoformat(row[10]) if row[10] and isinstance(row[10], str) else datetime.now())
+                hourly_rate=float(row[5]) if row[5] else 0.0,
+                is_active=bool(row[6]) if row[6] is not None else True,
+                created_at=row[7] if isinstance(row[7], datetime) else (datetime.fromisoformat(row[7]) if row[7] and isinstance(row[7], str) else datetime.now()),
+                updated_at=row[8] if isinstance(row[8], datetime) else (datetime.fromisoformat(row[8]) if row[8] and isinstance(row[8], str) else datetime.now())
             )
             postgres_session.add(teacher)
         postgres_session.commit()
     
-    # Materials
+    # Materials (17개 컬럼: 0~16)
     with Session(sqlite_engine) as sqlite_session, Session(postgres_engine) as postgres_session:
         materials = sqlite_session.exec(text("SELECT * FROM material")).fetchall()
         print(f"  📖 교재: {len(materials)}개")
         for row in materials:
             from app.models.material import Material
             material = Material(
-                title=row[1],
-                category=row[2] if row[2] else "",
-                author=row[3] if row[3] else "",
+                name=row[1],
+                subject=row[2] if row[2] else "",
+                grade=row[3] if row[3] else "",
                 publisher=row[4] if row[4] else "",
-                isbn=row[5] if row[5] else "",
-                description=row[6] if row[6] else "",
-                publication_date=datetime.fromisoformat(row[7]) if row[7] else datetime.now(),
-                edition=row[8] if row[8] else "",
-                quantity=int(row[9]) if row[9] else 0,
-                min_quantity=int(row[10]) if row[10] else 0,
-                price=float(row[11]) if row[11] else 0.0,
-                expiry_date=datetime.fromisoformat(row[12]) if row[12] else None,
-                is_active=bool(row[13]) if row[13] is not None else True,
-                created_at=datetime.fromisoformat(row[14]) if row[14] else datetime.now(),
-                updated_at=datetime.fromisoformat(row[15]) if row[15] else datetime.now()
+                author=row[5] if row[5] else "",
+                isbn=row[6] if row[6] else "",
+                description=row[7] if row[7] else "",
+                publication_date=row[8] if isinstance(row[8], datetime) else (datetime.fromisoformat(row[8]) if row[8] and isinstance(row[8], str) else datetime.now()),
+                edition=row[9] if row[9] else "",
+                quantity=int(row[10]) if row[10] else 0,
+                min_quantity=int(row[11]) if row[11] else 0,
+                price=float(row[12]) if row[12] else 0.0,
+                expiry_date=row[13] if isinstance(row[13], datetime) else (datetime.fromisoformat(row[13]) if row[13] and isinstance(row[13], str) else None),
+                is_active=bool(row[14]) if row[14] is not None else True,
+                created_at=row[15] if isinstance(row[15], datetime) else (datetime.fromisoformat(row[15]) if row[15] and isinstance(row[15], str) else datetime.now()),
+                updated_at=row[16] if isinstance(row[16], datetime) else (datetime.fromisoformat(row[16]) if row[16] and isinstance(row[16], str) else datetime.now())
             )
             postgres_session.add(material)
         postgres_session.commit()
     
-    # Lectures
+    # Lectures (15개 컬럼: 0~14)
     with Session(sqlite_engine) as sqlite_session, Session(postgres_engine) as postgres_session:
         lectures = sqlite_session.exec(text("SELECT * FROM lecture")).fetchall()
         print(f"  🎓 강의: {len(lectures)}개")
@@ -391,17 +390,17 @@ def force_reset_and_migrate():
                 title=row[1],
                 subject=row[2] if row[2] else "",
                 teacher_id=int(row[3]) if row[3] else None,
-                schedule=row[4] if row[4] else "",
-                classroom=row[5] if row[5] else "",
-                capacity=int(row[6]) if row[6] else 0,
-                current_enrollment=int(row[7]) if row[7] else 0,
-                start_date=datetime.fromisoformat(row[8]) if row[8] else datetime.now(),
-                end_date=datetime.fromisoformat(row[9]) if row[9] else datetime.now(),
-                description=row[10] if row[10] else "",
-                fee=float(row[11]) if row[11] else 0.0,
-                is_active=bool(row[12]) if row[12] is not None else True,
-                created_at=datetime.fromisoformat(row[13]) if row[13] else datetime.now(),
-                updated_at=datetime.fromisoformat(row[14]) if row[14] else datetime.now()
+                material_id=int(row[4]) if row[4] else None,
+                grade=row[5] if row[5] else "",
+                max_students=int(row[6]) if row[6] else 0,
+                current_students=int(row[7]) if row[7] else 0,
+                tuition_fee=int(row[8]) if row[8] else 0,
+                schedule=row[9] if row[9] else "",
+                classroom=row[10] if row[10] else "",
+                is_active=bool(row[11]) if row[11] is not None else True,
+                description=row[12] if row[12] else "",
+                created_at=row[13] if isinstance(row[13], datetime) else (datetime.fromisoformat(row[13]) if row[13] and isinstance(row[13], str) else datetime.now()),
+                updated_at=row[14] if isinstance(row[14], datetime) else (datetime.fromisoformat(row[14]) if row[14] and isinstance(row[14], str) else datetime.now())
             )
             postgres_session.add(lecture)
         postgres_session.commit()
