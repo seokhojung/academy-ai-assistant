@@ -92,6 +92,9 @@ temp/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db "backend/academy-ai-assistant-firebase-adminsdk-fbsvc-1b506771b4.json" 
-"backend/academy-ai-assistant-firebase-adminsdk-fbsvc-1b506771b4.json" 
-"backend/academy-ai-assistant-firebase-adminsdk-fbsvc-1b506771b4.json" 
+Thumbs.db
+
+# Test files with API keys
+test_*.py
+*_test.py
+temp_*.py 
