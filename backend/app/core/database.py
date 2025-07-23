@@ -19,62 +19,74 @@ def fix_postgresql_schema():
         return  # SQLite는 건너뛰기
     
     try:
+        print("🔧 PostgreSQL 스키마 수정 중...")
+        
+        # 각 컬럼을 개별 세션으로 처리하여 트랜잭션 충돌 방지
+        missing_columns = {
+            'author': 'VARCHAR(100)',
+            'publisher': 'VARCHAR(100)',
+            'isbn': 'VARCHAR(20)',
+            'description': 'VARCHAR(500)',
+            'publication_date': 'TIMESTAMP',
+            'edition': 'VARCHAR(20)',
+            'quantity': 'INTEGER',
+            'min_quantity': 'INTEGER',
+            'price': 'DOUBLE PRECISION',
+            'expiry_date': 'TIMESTAMP',
+            'is_active': 'BOOLEAN',
+            'created_at': 'TIMESTAMP',
+            'updated_at': 'TIMESTAMP'
+        }
+        
+        # 먼저 기존 컬럼 확인
         with Session(engine) as session:
-            print("🔧 PostgreSQL 스키마 수정 중...")
-            
-            # material 테이블 컬럼 확인
-            result = session.execute(text("""
-                SELECT column_name
-                FROM information_schema.columns 
-                WHERE table_name = 'material'
-                ORDER BY ordinal_position;
-            """))
-            existing_columns = [row[0] for row in result.fetchall()]
-            
-            # 누락된 컬럼 추가
-            missing_columns = {
-                'author': 'VARCHAR(100)',
-                'publisher': 'VARCHAR(100)',
-                'isbn': 'VARCHAR(20)',
-                'description': 'VARCHAR(500)',
-                'publication_date': 'TIMESTAMP',
-                'edition': 'VARCHAR(20)',
-                'quantity': 'INTEGER',
-                'min_quantity': 'INTEGER',
-                'price': 'DOUBLE PRECISION',
-                'expiry_date': 'TIMESTAMP',
-                'is_active': 'BOOLEAN',
-                'created_at': 'TIMESTAMP',
-                'updated_at': 'TIMESTAMP'
-            }
-            
-            for col_name, col_type in missing_columns.items():
-                if col_name not in existing_columns:
-                    print(f"  추가 중: {col_name} {col_type}")
-                    try:
+            try:
+                result = session.execute(text("""
+                    SELECT column_name
+                    FROM information_schema.columns 
+                    WHERE table_name = 'material'
+                    ORDER BY ordinal_position;
+                """))
+                existing_columns = [row[0] for row in result.fetchall()]
+                print(f"  기존 컬럼: {existing_columns}")
+            except Exception as e:
+                print(f"  ❌ 컬럼 확인 실패: {e}")
+                existing_columns = []
+        
+        # 각 컬럼을 개별적으로 추가
+        for col_name, col_type in missing_columns.items():
+            if col_name not in existing_columns:
+                print(f"  추가 중: {col_name} {col_type}")
+                try:
+                    with Session(engine) as session:
                         session.execute(text(f"ALTER TABLE material ADD COLUMN {col_name} {col_type}"))
                         session.commit()
                         print(f"    ✅ {col_name} 컬럼 추가 완료")
-                    except Exception as e:
-                        print(f"    ❌ {col_name} 컬럼 추가 실패: {e}")
-                        session.rollback()
-                else:
-                    print(f"  ✅ {col_name}: 이미 존재")
-            
-            # 기본값 설정
+                except Exception as e:
+                    print(f"    ❌ {col_name} 컬럼 추가 실패: {e}")
+                    # 실패해도 계속 진행
+            else:
+                print(f"  ✅ {col_name}: 이미 존재")
+        
+        # 기본값 설정 (개별적으로 처리)
+        default_settings = [
+            ("ALTER TABLE material ALTER COLUMN is_active SET DEFAULT true", "is_active 기본값"),
+            ("ALTER TABLE material ALTER COLUMN quantity SET DEFAULT 0", "quantity 기본값"),
+            ("ALTER TABLE material ALTER COLUMN min_quantity SET DEFAULT 5", "min_quantity 기본값"),
+            ("ALTER TABLE material ALTER COLUMN price SET DEFAULT 0.0", "price 기본값")
+        ]
+        
+        for sql, description in default_settings:
             try:
-                session.execute(text("ALTER TABLE material ALTER COLUMN is_active SET DEFAULT true"))
-                session.execute(text("ALTER TABLE material ALTER COLUMN quantity SET DEFAULT 0"))
-                session.execute(text("ALTER TABLE material ALTER COLUMN min_quantity SET DEFAULT 5"))
-                session.execute(text("ALTER TABLE material ALTER COLUMN price SET DEFAULT 0.0"))
-                session.commit()
-                print("  ✅ 기본값 설정 완료")
+                with Session(engine) as session:
+                    session.execute(text(sql))
+                    session.commit()
+                    print(f"  ✅ {description} 설정 완료")
             except Exception as e:
-                print(f"  ❌ 기본값 설정 실패: {e}")
-                session.rollback()
-            
-            print("✅ PostgreSQL 스키마 수정 완료!")
-            
+                print(f"  ❌ {description} 설정 실패: {e}")
+        
+        print("✅ PostgreSQL 스키마 수정 완료!")
+        
     except Exception as e:
         print(f"❌ PostgreSQL 스키마 수정 중 오류: {e}")
 
@@ -101,15 +113,61 @@ def create_db_and_tables():
             # PostgreSQL 스키마 수정 (기존 테이블이 있을 때)
             if settings.environment == "production":
                 fix_postgresql_schema()
+                
+                # 스키마 수정 후 테이블 상태 확인
+                try:
+                    with Session(engine) as session:
+                        # material 테이블의 컬럼 확인
+                        result = session.execute(text("""
+                            SELECT column_name
+                            FROM information_schema.columns 
+                            WHERE table_name = 'material'
+                            ORDER BY ordinal_position;
+                        """))
+                        columns = [row[0] for row in result.fetchall()]
+                        print(f"  material 테이블 컬럼: {columns}")
+                        
+                        # 필수 컬럼 확인
+                        required_columns = ['id', 'name', 'subject', 'grade', 'author']
+                        missing_required = [col for col in required_columns if col not in columns]
+                        
+                        if missing_required:
+                            print(f"  ❌ 필수 컬럼 누락: {missing_required}")
+                            print("  🔄 테이블 재생성 필요")
+                            # 테이블 재생성
+                            SQLModel.metadata.drop_all(engine)
+                            SQLModel.metadata.create_all(engine)
+                            print("  ✅ 테이블 재생성 완료")
+                            
+                            # 샘플 데이터 추가
+                            add_sample_data_if_empty()
+                        else:
+                            print("  ✅ 모든 필수 컬럼 존재")
+                            
+                except Exception as e:
+                    print(f"  ❌ 테이블 상태 확인 실패: {e}")
+                    print("  🔄 테이블 재생성 시도")
+                    # 테이블 재생성
+                    SQLModel.metadata.drop_all(engine)
+                    SQLModel.metadata.create_all(engine)
+                    print("  ✅ 테이블 재생성 완료")
+                    
+                    # 샘플 데이터 추가
+                    add_sample_data_if_empty()
             
     except Exception as e:
         print(f"❌ 테이블 생성 중 오류: {e}")
         # 오류 발생 시에도 테이블 생성 시도
-        SQLModel.metadata.create_all(engine)
-        
-        # PostgreSQL 스키마 수정 시도
-        if settings.environment == "production":
-            fix_postgresql_schema()
+        try:
+            SQLModel.metadata.create_all(engine)
+            print("✅ 테이블 생성 성공 (오류 후 재시도)")
+            
+            # PostgreSQL 스키마 수정 시도
+            if settings.environment == "production":
+                fix_postgresql_schema()
+                add_sample_data_if_empty()
+        except Exception as e2:
+            print(f"❌ 테이블 생성 재시도 실패: {e2}")
 
 
 def add_sample_data_if_empty():
