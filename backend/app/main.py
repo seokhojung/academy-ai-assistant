@@ -133,6 +133,8 @@ def migrate_local_data_to_postgresql():
             add_sample_data_directly(session)
             return
         
+        print("    ✅ academy.db 파일 발견! 실제 데이터 마이그레이션 시작...")
+        
         # 스키마 수정을 먼저 실행
         print("    🔧 스키마 수정 먼저 실행...")
         force_fix_postgresql_schema()
