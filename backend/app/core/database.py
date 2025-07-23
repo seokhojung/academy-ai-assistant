@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import SQLModel, create_engine, Session, text
 from sqlalchemy import inspect
 from .config import settings
 
@@ -11,6 +11,72 @@ engine = create_engine(
     pool_recycle=300,
     connect_args={"check_same_thread": False} if "sqlite" in settings.get_database_url else {}
 )
+
+
+def fix_postgresql_schema():
+    """PostgreSQL 스키마 수정 - 누락된 컬럼 추가"""
+    if "sqlite" in settings.get_database_url:
+        return  # SQLite는 건너뛰기
+    
+    try:
+        with Session(engine) as session:
+            print("🔧 PostgreSQL 스키마 수정 중...")
+            
+            # material 테이블 컬럼 확인
+            result = session.execute(text("""
+                SELECT column_name
+                FROM information_schema.columns 
+                WHERE table_name = 'material'
+                ORDER BY ordinal_position;
+            """))
+            existing_columns = [row[0] for row in result.fetchall()]
+            
+            # 누락된 컬럼 추가
+            missing_columns = {
+                'author': 'VARCHAR(100)',
+                'publisher': 'VARCHAR(100)',
+                'isbn': 'VARCHAR(20)',
+                'description': 'VARCHAR(500)',
+                'publication_date': 'TIMESTAMP',
+                'edition': 'VARCHAR(20)',
+                'quantity': 'INTEGER',
+                'min_quantity': 'INTEGER',
+                'price': 'DOUBLE PRECISION',
+                'expiry_date': 'TIMESTAMP',
+                'is_active': 'BOOLEAN',
+                'created_at': 'TIMESTAMP',
+                'updated_at': 'TIMESTAMP'
+            }
+            
+            for col_name, col_type in missing_columns.items():
+                if col_name not in existing_columns:
+                    print(f"  추가 중: {col_name} {col_type}")
+                    try:
+                        session.execute(text(f"ALTER TABLE material ADD COLUMN {col_name} {col_type}"))
+                        session.commit()
+                        print(f"    ✅ {col_name} 컬럼 추가 완료")
+                    except Exception as e:
+                        print(f"    ❌ {col_name} 컬럼 추가 실패: {e}")
+                        session.rollback()
+                else:
+                    print(f"  ✅ {col_name}: 이미 존재")
+            
+            # 기본값 설정
+            try:
+                session.execute(text("ALTER TABLE material ALTER COLUMN is_active SET DEFAULT true"))
+                session.execute(text("ALTER TABLE material ALTER COLUMN quantity SET DEFAULT 0"))
+                session.execute(text("ALTER TABLE material ALTER COLUMN min_quantity SET DEFAULT 5"))
+                session.execute(text("ALTER TABLE material ALTER COLUMN price SET DEFAULT 0.0"))
+                session.commit()
+                print("  ✅ 기본값 설정 완료")
+            except Exception as e:
+                print(f"  ❌ 기본값 설정 실패: {e}")
+                session.rollback()
+            
+            print("✅ PostgreSQL 스키마 수정 완료!")
+            
+    except Exception as e:
+        print(f"❌ PostgreSQL 스키마 수정 중 오류: {e}")
 
 
 def create_db_and_tables():
@@ -32,10 +98,18 @@ def create_db_and_tables():
         else:
             print(f"✅ 기존 테이블 유지됨: {existing_tables}")
             
+            # PostgreSQL 스키마 수정 (기존 테이블이 있을 때)
+            if settings.environment == "production":
+                fix_postgresql_schema()
+            
     except Exception as e:
         print(f"❌ 테이블 생성 중 오류: {e}")
         # 오류 발생 시에도 테이블 생성 시도
         SQLModel.metadata.create_all(engine)
+        
+        # PostgreSQL 스키마 수정 시도
+        if settings.environment == "production":
+            fix_postgresql_schema()
 
 
 def add_sample_data_if_empty():
