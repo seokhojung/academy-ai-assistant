@@ -83,6 +83,123 @@ def force_fix_postgresql_schema():
     except Exception as e:
         print(f"❌ 강제 스키마 수정 실패: {e}")
 
+def migrate_local_data_to_postgresql():
+    """로컬 데이터를 PostgreSQL로 마이그레이션"""
+    import sqlite3
+    import json
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import sessionmaker
+    
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url or "sqlite" in database_url:
+        return  # SQLite는 건너뛰기
+    
+    try:
+        print("🔄 로컬 데이터 PostgreSQL 마이그레이션 시작...")
+        
+        # 1. 로컬 SQLite 데이터 백업
+        print("  📦 로컬 SQLite 데이터 백업 중...")
+        
+        if not os.path.exists('academy.db'):
+            print("    ❌ academy.db 파일이 존재하지 않습니다.")
+            return
+        
+        sqlite_conn = sqlite3.connect('academy.db')
+        sqlite_cursor = sqlite_conn.cursor()
+        
+        # 테이블 목록 가져오기
+        sqlite_cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in sqlite_cursor.fetchall()]
+        
+        backup_data = {}
+        
+        for table in tables:
+            print(f"    백업 중: {table}")
+            
+            # 테이블 스키마 가져오기
+            sqlite_cursor.execute(f"PRAGMA table_info({table})")
+            columns = [row[1] for row in sqlite_cursor.fetchall()]
+            
+            # 데이터 가져오기
+            sqlite_cursor.execute(f"SELECT * FROM {table}")
+            rows = sqlite_cursor.fetchall()
+            
+            # 딕셔너리로 변환
+            table_data = []
+            for row in rows:
+                row_dict = {}
+                for i, value in enumerate(row):
+                    row_dict[columns[i]] = value
+                table_data.append(row_dict)
+            
+            backup_data[table] = table_data
+            print(f"      {len(table_data)}개 레코드 백업 완료")
+        
+        sqlite_conn.close()
+        
+        # 2. PostgreSQL로 마이그레이션
+        print("  🚀 PostgreSQL로 마이그레이션 중...")
+        
+        engine = create_engine(database_url, echo=False)
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        
+        with SessionLocal() as session:
+            # 기존 데이터 삭제
+            tables_to_clear = ['lecture', 'material', 'student', 'teacher', 'user', 'usercolumnsettings']
+            
+            for table in tables_to_clear:
+                try:
+                    session.execute(text(f"DELETE FROM {table}"))
+                    print(f"    ✅ {table} 테이블 데이터 삭제")
+                except Exception as e:
+                    print(f"    ⚠️ {table} 테이블 삭제 실패: {e}")
+            
+            session.commit()
+            
+            # 새 데이터 삽입
+            insert_order = ['user', 'usercolumnsettings', 'student', 'teacher', 'material', 'lecture']
+            
+            for table in insert_order:
+                if table in backup_data and backup_data[table]:
+                    print(f"    삽입 중: {table} ({len(backup_data[table])}개)")
+                    
+                    for row_data in backup_data[table]:
+                        try:
+                            # ID 제거 (자동 생성)
+                            if 'id' in row_data:
+                                del row_data['id']
+                            
+                            # SQL 쿼리 생성
+                            columns = list(row_data.keys())
+                            placeholders = ', '.join([':' + col for col in columns])
+                            column_names = ', '.join(columns)
+                            
+                            sql = f"INSERT INTO {table} ({column_names}) VALUES ({placeholders})"
+                            session.execute(text(sql), row_data)
+                            
+                        except Exception as e:
+                            print(f"      ❌ 레코드 삽입 실패: {e}")
+                            session.rollback()
+                            continue
+                    
+                    session.commit()
+                    print(f"      ✅ {table} 테이블 삽입 완료")
+            
+            # 결과 확인
+            print("  📊 마이그레이션 결과 확인...")
+            for table in ['student', 'teacher', 'material', 'lecture']:
+                try:
+                    result = session.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                    count = result.scalar()
+                    print(f"    {table}: {count}개")
+                except Exception as e:
+                    print(f"    {table}: 확인 실패 - {e}")
+        
+        print("✅ 로컬 데이터 마이그레이션 완료!")
+        
+    except Exception as e:
+        print(f"❌ 로컬 데이터 마이그레이션 실패: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 시 실행되는 함수"""
@@ -91,6 +208,9 @@ async def lifespan(app: FastAPI):
     
     # 강제 스키마 수정 실행
     force_fix_postgresql_schema()
+    
+    # 로컬 데이터 마이그레이션 실행
+    migrate_local_data_to_postgresql()
     
     # 기존 데이터베이스 초기화
     create_db_and_tables()
