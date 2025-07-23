@@ -265,7 +265,7 @@ async def health_check():
     try:
         # 데이터베이스 연결 테스트
         session = next(get_session())
-        session.execute("SELECT 1")
+        session.execute(text("SELECT 1"))
         session.close()
         
         return {
