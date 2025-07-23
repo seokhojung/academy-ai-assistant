@@ -326,10 +326,10 @@ def force_reset_and_migrate():
                 phone=row[3] if row[3] else "",
                 grade=row[4] if row[4] else "",
                 tuition_fee=float(row[5]) if len(row) > 5 and row[5] else 0.0,
-                tuition_due_date=datetime.fromisoformat(row[6]) if len(row) > 6 and row[6] else None,
+                tuition_due_date=row[6] if len(row) > 6 and isinstance(row[6], datetime) else (datetime.fromisoformat(row[6]) if len(row) > 6 and row[6] and isinstance(row[6], str) else None),
                 is_active=bool(row[7]) if len(row) > 7 and row[7] is not None else True,
-                created_at=datetime.fromisoformat(row[8]) if len(row) > 8 and row[8] else datetime.now(),
-                updated_at=datetime.fromisoformat(row[9]) if len(row) > 9 and row[9] else datetime.now()
+                created_at=row[8] if len(row) > 8 and isinstance(row[8], datetime) else (datetime.fromisoformat(row[8]) if len(row) > 8 and row[8] and isinstance(row[8], str) else datetime.now()),
+                updated_at=row[9] if len(row) > 9 and isinstance(row[9], datetime) else (datetime.fromisoformat(row[9]) if len(row) > 9 and row[9] and isinstance(row[9], str) else datetime.now())
             )
             postgres_session.add(student)
         postgres_session.commit()
@@ -345,12 +345,12 @@ def force_reset_and_migrate():
                 email=row[2] if row[2] else f"teacher{row[0]}@example.com",
                 phone=row[3] if row[3] else "",
                 subject=row[4] if row[4] else "",
-                hire_date=datetime.fromisoformat(row[5]) if row[5] else datetime.now(),
+                hire_date=row[5] if isinstance(row[5], datetime) else (datetime.fromisoformat(row[5]) if row[5] and isinstance(row[5], str) else datetime.now()),
                 salary=float(row[6]) if row[6] else 0.0,
                 notes=row[7] if row[7] else "",
                 is_active=bool(row[8]) if row[8] is not None else True,
-                created_at=datetime.fromisoformat(row[9]) if row[9] else datetime.now(),
-                updated_at=datetime.fromisoformat(row[10]) if row[10] else datetime.now()
+                created_at=row[9] if isinstance(row[9], datetime) else (datetime.fromisoformat(row[9]) if row[9] and isinstance(row[9], str) else datetime.now()),
+                updated_at=row[10] if isinstance(row[10], datetime) else (datetime.fromisoformat(row[10]) if row[10] and isinstance(row[10], str) else datetime.now())
             )
             postgres_session.add(teacher)
         postgres_session.commit()
