@@ -276,7 +276,6 @@ async def lifespan(app: FastAPI):
         try:
             # reset_postgresql_clean 함수 import 및 실행
             import sys
-            import os
             sys.path.append(os.path.dirname(os.path.dirname(__file__)))
             from reset_postgresql_clean import reset_postgresql_clean
             reset_postgresql_clean()
