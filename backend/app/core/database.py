@@ -179,13 +179,14 @@ def add_sample_data_if_empty():
             student_count = session.query(Student).count()
             
             if student_count == 0:
-                print("📊 빈 데이터베이스 감지: 샘플 데이터 추가 시작")
-                # 샘플 데이터 추가 로직
-                add_sample_students(session)
-                add_sample_teachers(session)
-                add_sample_materials(session)
-                add_sample_lectures(session)
-                print("✅ 샘플 데이터 추가 완료")
+                print("📊 빈 데이터베이스 감지: 실제 데이터 마이그레이션을 기다립니다")
+                print("  샘플 데이터 추가가 비활성화되었습니다")
+                # 샘플 데이터 추가 로직 비활성화
+                # add_sample_students(session)
+                # add_sample_teachers(session)
+                # add_sample_materials(session)
+                # add_sample_lectures(session)
+                print("✅ 실제 데이터 마이그레이션을 대기 중")
             else:
                 print(f"✅ 기존 데이터 유지: 학생 {student_count}명")
                 

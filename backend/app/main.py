@@ -259,83 +259,10 @@ def migrate_local_data_to_postgresql():
         print(f"❌ 로컬 데이터 마이그레이션 실패: {e}")
 
 def add_sample_data_directly(session):
-    """PostgreSQL에 직접 샘플 데이터 추가"""
-    try:
-        print("📝 PostgreSQL에 샘플 데이터 직접 추가...")
-        
-        # 기존 데이터 확인
-        result = session.execute(text("SELECT COUNT(*) FROM student"))
-        student_count = result.scalar()
-        
-        result = session.execute(text("SELECT COUNT(*) FROM teacher"))
-        teacher_count = result.scalar()
-        
-        print(f"  현재 학생: {student_count}명, 강사: {teacher_count}명")
-        
-        # 이미 데이터가 있으면 건너뛰기
-        if student_count > 0 and teacher_count > 0:
-            print("  ✅ 이미 데이터가 존재합니다. 샘플 데이터 추가를 건너뜁니다.")
-            return
-        
-        # 기존 데이터 삭제
-        for table in ['lecture', 'material', 'student', 'teacher']:
-            try:
-                session.execute(text(f"DELETE FROM {table}"))
-                print(f"  ✅ {table} 테이블 데이터 삭제")
-            except Exception as e:
-                print(f"  ⚠️ {table} 테이블 삭제 실패: {e}")
-        
-        session.commit()
-        
-        # 샘플 데이터 추가
-        sample_data = {
-            'student': [
-                {"name": "김철수", "grade": "고1", "email": "kim@academy.com", "phone": "010-1234-5678", "tuition_fee": 500000, "is_active": True},
-                {"name": "이영희", "grade": "고2", "email": "lee@academy.com", "phone": "010-2345-6789", "tuition_fee": 600000, "is_active": True},
-                {"name": "박민수", "grade": "고3", "email": "park@academy.com", "phone": "010-3456-7890", "tuition_fee": 700000, "is_active": True},
-            ],
-            'teacher': [
-                {"name": "김수학", "subject": "수학", "email": "math@academy.com", "phone": "010-1111-2222", "hourly_rate": 50000, "is_active": True},
-                {"name": "이영어", "subject": "영어", "email": "english@academy.com", "phone": "010-3333-4444", "hourly_rate": 45000, "is_active": True},
-                {"name": "박과학", "subject": "과학", "email": "science@academy.com", "phone": "010-5555-6666", "hourly_rate": 48000, "is_active": True},
-            ],
-            'material': [
-                {"name": "중등 수학 1", "subject": "수학", "grade": "중1", "author": "김수학", "publisher": "교육출판사", "quantity": 50, "price": 15000, "is_active": True},
-                {"name": "고등 영어 독해", "subject": "영어", "grade": "고1", "author": "이영어", "publisher": "영어출판사", "quantity": 30, "price": 20000, "is_active": True},
-                {"name": "중등 과학 실험", "subject": "과학", "grade": "중3", "author": "박과학", "publisher": "과학출판사", "quantity": 25, "price": 18000, "is_active": True},
-            ],
-            'lecture': [
-                {"title": "고1 수학 기초", "subject": "수학", "grade": "고1", "schedule": "월수금 14:00-16:00", "is_active": True},
-                {"title": "고2 영어 독해", "subject": "영어", "grade": "고2", "schedule": "화목 15:00-17:00", "is_active": True},
-                {"title": "중3 과학 실험", "subject": "과학", "grade": "중3", "schedule": "토 10:00-12:00", "is_active": True},
-            ]
-        }
-        
-        for table, data_list in sample_data.items():
-            print(f"  삽입 중: {table} ({len(data_list)}개)")
-            
-            for data in data_list:
-                try:
-                    columns = list(data.keys())
-                    placeholders = ', '.join([':' + col for col in columns])
-                    column_names = ', '.join(columns)
-                    
-                    sql = f"INSERT INTO {table} ({column_names}) VALUES ({placeholders})"
-                    session.execute(text(sql), data)
-                    
-                except Exception as e:
-                    print(f"    ❌ 레코드 삽입 실패: {e}")
-                    print(f"    데이터: {data}")
-                    session.rollback()
-                    continue
-            
-            session.commit()
-            print(f"    ✅ {table} 테이블 삽입 완료")
-        
-        print("✅ 샘플 데이터 추가 완료!")
-        
-    except Exception as e:
-        print(f"❌ 샘플 데이터 추가 실패: {e}")
+    """PostgreSQL에 직접 샘플 데이터 추가 - 제거됨"""
+    print("📝 샘플 데이터 추가가 비활성화되었습니다.")
+    print("  실제 로컬 데이터만 사용합니다.")
+    return
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
