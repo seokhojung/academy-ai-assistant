@@ -43,10 +43,18 @@ class ContextBuilder:
         context_data = {}
         
         try:
+            # 환경에 따른 API URL 설정
+            if os.getenv("ENVIRONMENT") == "production" or os.getenv("RENDER"):
+                # 배포 환경 (Render)
+                base_url = "https://academy-ai-assistant-backend.onrender.com/api/v1"
+            else:
+                # 로컬 개발 환경
+                base_url = "http://localhost:8000/api/v1"
+            
+            print(f"[ContextBuilder] API URL: {base_url}")
+            
             # API를 통해 데이터 가져오기 (대시보드와 동일한 소스)
             async with httpx.AsyncClient() as client:
-                base_url = "http://localhost:8000/api/v1"
-                
                 # 학생 정보
                 students_response = await client.get(f"{base_url}/students/")
                 if students_response.status_code == 200:
@@ -63,6 +71,8 @@ class ContextBuilder:
                         } for s in students
                     ]
                     print(f"[ContextBuilder] API에서 학생 {len(context_data['students'])}명 조회")
+                else:
+                    print(f"[ContextBuilder] 학생 API 오류: {students_response.status_code}")
                 
                 # 강사 정보
                 teachers_response = await client.get(f"{base_url}/teachers/")
@@ -80,6 +90,8 @@ class ContextBuilder:
                         } for t in teachers
                     ]
                     print(f"[ContextBuilder] API에서 강사 {len(context_data['teachers'])}명 조회")
+                else:
+                    print(f"[ContextBuilder] 강사 API 오류: {teachers_response.status_code}")
                 
                 # 교재 정보
                 materials_response = await client.get(f"{base_url}/materials/")
@@ -98,6 +110,8 @@ class ContextBuilder:
                         } for m in materials
                     ]
                     print(f"[ContextBuilder] API에서 교재 {len(context_data['materials'])}개 조회")
+                else:
+                    print(f"[ContextBuilder] 교재 API 오류: {materials_response.status_code}")
                 
                 # 강의 정보
                 lectures_response = await client.get(f"{base_url}/lectures/")
@@ -118,6 +132,8 @@ class ContextBuilder:
                         } for l in lectures
                     ]
                     print(f"[ContextBuilder] API에서 강의 {len(context_data['lectures'])}개 조회")
+                else:
+                    print(f"[ContextBuilder] 강의 API 오류: {lectures_response.status_code}")
                 
         except Exception as e:
             print(f"[ContextBuilder] API 조회 오류: {e}")
