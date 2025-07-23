@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
 from datetime import datetime
+from sqlalchemy import text
 
 from app.core.database import create_db_and_tables, get_session
 from app.api.v1 import ai, auth, lectures, materials, students, teachers, user, excel_preview
