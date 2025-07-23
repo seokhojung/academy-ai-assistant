@@ -462,38 +462,17 @@ async def lifespan(app: FastAPI):
     # 시작 시
     print("🚀 애플리케이션 시작...")
     
-    # 일회성 마이그레이션 체크
-    force_reset_env = os.getenv("RUN_FORCE_RESET", "").lower()
-    print(f"🔍 RUN_FORCE_RESET 환경변수: '{force_reset_env}'")
-    
-    if force_reset_env == "true" or os.getenv("FORCE_MIGRATION_NOW") == "yes":
-        print("🔥 PostgreSQL 강제 완전 초기화 시작...")
-        try:
-            # PostgreSQL 강제 초기화 및 완전 마이그레이션
-            force_reset_and_migrate()
-            print("🎉 PostgreSQL 강제 초기화 및 완전 마이그레이션 성공!")
-        except Exception as e:
-            print(f"❌ 강제 초기화 실패: {e}")
-            import traceback
-            traceback.print_exc()
-            create_db_and_tables()
-    elif os.getenv("RUN_MIGRATION") == "true":
-        print("🔄 academy.db → PostgreSQL 완전 마이그레이션 시작...")
-        try:
-            # reset_postgresql_clean 함수 import 및 실행
-            import sys
-            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-            from reset_postgresql_clean import reset_postgresql_clean
-            reset_postgresql_clean()
-            print("✅ academy.db와 동일하게 마이그레이션 완료!")
-            print("📊 PostgreSQL이 이제 academy.db 데이터와 완전히 동일합니다!")
-        except Exception as e:
-            print(f"❌ 마이그레이션 실패: {e}")
-            # 마이그레이션 실패 시에만 기본 테이블 생성
-            create_db_and_tables()
-    else:
-        print("📝 마이그레이션 스킵 (RUN_MIGRATION=true 또는 RUN_FORCE_RESET=true 설정 시 실행)")
-        # 마이그레이션 안 할 때만 기존 테이블 유지
+    # 🔥🔥🔥 임시 하드코딩: 무조건 강제 초기화 실행 🔥🔥🔥
+    print("🔥🔥🔥 하드코딩된 강제 초기화 시작...")
+    try:
+        force_reset_and_migrate()
+        print("🎉🎉🎉 하드코딩 강제 초기화 성공!")
+    except Exception as e:
+        print(f"❌❌❌ 하드코딩 강제 초기화 실패: {e}")
+        import traceback
+        traceback.print_exc()
+        # 실패 시에만 기본 테이블 생성
+        from app.core.database import create_db_and_tables
         create_db_and_tables()
     
     print("✅ 애플리케이션 초기화 완료")
