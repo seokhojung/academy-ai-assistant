@@ -272,21 +272,23 @@ async def lifespan(app: FastAPI):
     
     # 일회성 마이그레이션 체크
     if os.getenv("RUN_MIGRATION") == "true":
-        print("🔄 일회성 마이그레이션 실행...")
+        print("🔄 academy.db → PostgreSQL 완전 마이그레이션 시작...")
         try:
             # reset_postgresql_clean 함수 import 및 실행
             import sys
             sys.path.append(os.path.dirname(os.path.dirname(__file__)))
             from reset_postgresql_clean import reset_postgresql_clean
             reset_postgresql_clean()
-            print("✅ 마이그레이션 완료!")
+            print("✅ academy.db와 동일하게 마이그레이션 완료!")
+            print("📊 PostgreSQL이 이제 academy.db 데이터와 완전히 동일합니다!")
         except Exception as e:
             print(f"❌ 마이그레이션 실패: {e}")
+            # 마이그레이션 실패 시에만 기본 테이블 생성
+            create_db_and_tables()
     else:
         print("📝 마이그레이션 스킵 (RUN_MIGRATION=true 설정 시 실행)")
-    
-    # 기존 데이터베이스 초기화 (테이블 생성만)
-    create_db_and_tables()
+        # 마이그레이션 안 할 때만 기존 테이블 유지
+        create_db_and_tables()
     
     print("✅ 애플리케이션 초기화 완료")
     
