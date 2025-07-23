@@ -325,15 +325,11 @@ def force_reset_and_migrate():
                 email=row[2] if row[2] else f"student{row[0]}@example.com",
                 phone=row[3] if row[3] else "",
                 grade=row[4] if row[4] else "",
-                school=row[5] if row[5] else "",
-                parent_name=row[6] if row[6] else "",
-                parent_phone=row[7] if row[7] else "",
-                address=row[8] if row[8] else "",
-                notes=row[9] if row[9] else "",
-                enrollment_date=datetime.fromisoformat(row[10]) if row[10] else datetime.now(),
-                is_active=bool(row[11]) if row[11] is not None else True,
-                created_at=datetime.fromisoformat(row[12]) if row[12] else datetime.now(),
-                updated_at=datetime.fromisoformat(row[13]) if row[13] else datetime.now()
+                tuition_fee=float(row[5]) if len(row) > 5 and row[5] else 0.0,
+                tuition_due_date=datetime.fromisoformat(row[6]) if len(row) > 6 and row[6] else None,
+                is_active=bool(row[7]) if len(row) > 7 and row[7] is not None else True,
+                created_at=datetime.fromisoformat(row[8]) if len(row) > 8 and row[8] else datetime.now(),
+                updated_at=datetime.fromisoformat(row[9]) if len(row) > 9 and row[9] else datetime.now()
             )
             postgres_session.add(student)
         postgres_session.commit()
