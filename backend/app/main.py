@@ -76,8 +76,33 @@ def force_fix_postgresql_schema():
                     except Exception as e:
                         print(f"    ❌ {col_name} 추가 실패: {e}")
                         session.rollback()
+                        # 실패해도 계속 진행
                 else:
                     print(f"  ✅ {col_name}: 이미 존재")
+            
+            # 모든 컬럼이 있는지 다시 확인
+            result = session.execute(text("""
+                SELECT column_name
+                FROM information_schema.columns 
+                WHERE table_name = 'material'
+                ORDER BY ordinal_position;
+            """))
+            
+            final_columns = [row[0] for row in result.fetchall()]
+            required_columns = ['id', 'name', 'subject', 'grade', 'author']
+            missing_required = [col for col in required_columns if col not in final_columns]
+            
+            if missing_required:
+                print(f"  ❌ 여전히 누락된 필수 컬럼: {missing_required}")
+                print("  🔄 테이블 재생성 시도...")
+                # 테이블 재생성
+                session.execute(text("DROP TABLE IF EXISTS material CASCADE"))
+                session.commit()
+                # SQLModel로 테이블 재생성
+                from app.models.material import Material
+                from sqlmodel import SQLModel
+                SQLModel.metadata.create_all(engine, tables=[Material.__table__])
+                print("  ✅ material 테이블 재생성 완료")
             
             print("✅ 강제 스키마 수정 완료!")
             
@@ -107,6 +132,10 @@ def migrate_local_data_to_postgresql():
             # academy.db가 없으면 샘플 데이터만 추가
             add_sample_data_directly(session)
             return
+        
+        # 스키마 수정을 먼저 실행
+        print("    🔧 스키마 수정 먼저 실행...")
+        force_fix_postgresql_schema()
         
         sqlite_conn = sqlite3.connect('academy.db')
         sqlite_cursor = sqlite_conn.cursor()
