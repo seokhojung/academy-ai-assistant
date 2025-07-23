@@ -123,6 +123,27 @@ def migrate_local_data_to_postgresql():
     try:
         print("🔄 로컬 데이터 PostgreSQL 마이그레이션 시작...")
         
+        # 0. 기존 데이터 확인
+        print("  📊 기존 데이터 확인 중...")
+        engine = create_engine(database_url, echo=False)
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        
+        with SessionLocal() as session:
+            # 학생 데이터 확인
+            result = session.execute(text("SELECT COUNT(*) FROM student"))
+            student_count = result.scalar()
+            
+            # 강사 데이터 확인
+            result = session.execute(text("SELECT COUNT(*) FROM teacher"))
+            teacher_count = result.scalar()
+            
+            print(f"    현재 학생: {student_count}명, 강사: {teacher_count}명")
+            
+            # 이미 충분한 데이터가 있으면 마이그레이션 건너뛰기
+            if student_count > 0 and teacher_count > 0:
+                print("    ✅ 이미 데이터가 존재합니다. 마이그레이션을 건너뜁니다.")
+                return
+        
         # 1. 로컬 SQLite 데이터 백업
         print("  📦 로컬 SQLite 데이터 백업 중...")
         
@@ -175,11 +196,8 @@ def migrate_local_data_to_postgresql():
         # 2. PostgreSQL로 마이그레이션
         print("  🚀 PostgreSQL로 마이그레이션 중...")
         
-        engine = create_engine(database_url, echo=False)
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        
         with SessionLocal() as session:
-            # 기존 데이터 삭제
+            # 기존 데이터 삭제 (중복 체크 후에만)
             tables_to_clear = ['lecture', 'material', 'student', 'teacher', 'user', 'usercolumnsettings']
             
             for table in tables_to_clear:
@@ -244,6 +262,20 @@ def add_sample_data_directly(session):
     """PostgreSQL에 직접 샘플 데이터 추가"""
     try:
         print("📝 PostgreSQL에 샘플 데이터 직접 추가...")
+        
+        # 기존 데이터 확인
+        result = session.execute(text("SELECT COUNT(*) FROM student"))
+        student_count = result.scalar()
+        
+        result = session.execute(text("SELECT COUNT(*) FROM teacher"))
+        teacher_count = result.scalar()
+        
+        print(f"  현재 학생: {student_count}명, 강사: {teacher_count}명")
+        
+        # 이미 데이터가 있으면 건너뛰기
+        if student_count > 0 and teacher_count > 0:
+            print("  ✅ 이미 데이터가 존재합니다. 샘플 데이터 추가를 건너뜁니다.")
+            return
         
         # 기존 데이터 삭제
         for table in ['lecture', 'material', 'student', 'teacher']:
