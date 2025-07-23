@@ -9,12 +9,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://your-render-app.onrender.com/api"
+    "NEXT_PUBLIC_API_URL": "https://academy-ai-assistant.onrender.com/api"
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://your-render-app.onrender.com/api/$1"
+      "destination": "https://academy-ai-assistant.onrender.com/api/$1"
     }
   ],
   "headers": [

@@ -1,0 +1,56 @@
+{
+  "cleanup_info": {
+    "timestamp": "20250722_134941",
+    "total_files_removed": 7,
+    "total_size_freed": 53753
+  },
+  "removed_files": [
+    {
+      "path": "app/services/ai_service.py",
+      "size": 10805,
+      "reason": "기존 AI 서비스 (새로운 시스템으로 대체됨)",
+      "timestamp": "2025-07-22T13:49:41.063902"
+    },
+    {
+      "path": "app/services/ai_service_new2.py",
+      "size": 21068,
+      "reason": "임시 AI 서비스 (새로운 시스템으로 대체됨)",
+      "timestamp": "2025-07-22T13:49:41.063902"
+    },
+    {
+      "path": "AI_SETUP_GUIDE.md",
+      "size": 4888,
+      "reason": "개별 설정 가이드 (AI_GUIDELINES.md로 통합됨)",
+      "timestamp": "2025-07-22T13:49:41.063902"
+    },
+    {
+      "path": "GEMINI_SETUP.md",
+      "size": 3227,
+      "reason": "Gemini 설정 가이드 (AI_GUIDELINES.md로 통합됨)",
+      "timestamp": "2025-07-22T13:49:41.064976"
+    },
+    {
+      "path": "GEMINI_API_SETUP_GUIDE.md",
+      "size": 4552,
+      "reason": "Gemini API 가이드 (AI_GUIDELINES.md로 통합됨)",
+      "timestamp": "2025-07-22T13:49:41.064976"
+    },
+    {
+      "path": "test-ai-chat.py",
+      "size": 5781,
+      "reason": "개별 AI 채팅 테스트 (test_ai_system_complete.py로 통합됨)",
+      "timestamp": "2025-07-22T13:49:41.064976"
+    },
+    {
+      "path": "test_new_ai_system.py",
+      "size": 3432,
+      "reason": "새로운 AI 시스템 테스트 (test_ai_system_complete.py로 통합됨)",
+      "timestamp": "2025-07-22T13:49:41.064976"
+    }
+  ],
+  "categories": {
+    "ai_services": 2,
+    "documentation": 0,
+    "test_files": 2
+  }
+}

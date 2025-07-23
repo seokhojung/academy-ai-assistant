@@ -24,7 +24,7 @@
     "docker:push": "docker tag academy-frontend ghcr.io/your-username/academy-frontend:latest && docker push ghcr.io/your-username/academy-frontend:latest",
     "analyze": "ANALYZE=true npm run build",
     "export": "next export",
-    "clean": "rm -rf .next out coverage",
+    "clean": "if exist .next rmdir /s /q .next && if exist out rmdir /s /q out && if exist coverage rmdir /s /q coverage",
     "prebuild": "npm run clean",
     "postbuild": "echo 'Build completed successfully!'"
   },

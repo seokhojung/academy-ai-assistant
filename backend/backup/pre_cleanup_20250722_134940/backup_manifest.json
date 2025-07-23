@@ -1,0 +1,64 @@
+{
+  "backup_info": {
+    "timestamp": "20250722_134940",
+    "backup_dir": "backup/pre_cleanup_20250722_134940",
+    "total_files": 7,
+    "total_size": 53753
+  },
+  "backup_files": [
+    {
+      "source": "app/services/ai_service.py",
+      "backup": "backup/pre_cleanup_20250722_134940\\ai_services\\ai_service.py",
+      "category": "ai_services",
+      "timestamp": "2025-07-22T13:49:40.956989",
+      "size": 10805
+    },
+    {
+      "source": "app/services/ai_service_new2.py",
+      "backup": "backup/pre_cleanup_20250722_134940\\ai_services\\ai_service_new2.py",
+      "category": "ai_services",
+      "timestamp": "2025-07-22T13:49:40.957988",
+      "size": 21068
+    },
+    {
+      "source": "AI_SETUP_GUIDE.md",
+      "backup": "backup/pre_cleanup_20250722_134940\\documentation\\AI_SETUP_GUIDE.md",
+      "category": "documentation",
+      "timestamp": "2025-07-22T13:49:40.957988",
+      "size": 4888
+    },
+    {
+      "source": "GEMINI_SETUP.md",
+      "backup": "backup/pre_cleanup_20250722_134940\\documentation\\GEMINI_SETUP.md",
+      "category": "documentation",
+      "timestamp": "2025-07-22T13:49:40.958989",
+      "size": 3227
+    },
+    {
+      "source": "GEMINI_API_SETUP_GUIDE.md",
+      "backup": "backup/pre_cleanup_20250722_134940\\documentation\\GEMINI_API_SETUP_GUIDE.md",
+      "category": "documentation",
+      "timestamp": "2025-07-22T13:49:40.959989",
+      "size": 4552
+    },
+    {
+      "source": "test-ai-chat.py",
+      "backup": "backup/pre_cleanup_20250722_134940\\test_files\\test-ai-chat.py",
+      "category": "test_files",
+      "timestamp": "2025-07-22T13:49:40.960989",
+      "size": 5781
+    },
+    {
+      "source": "test_new_ai_system.py",
+      "backup": "backup/pre_cleanup_20250722_134940\\test_files\\test_new_ai_system.py",
+      "category": "test_files",
+      "timestamp": "2025-07-22T13:49:40.960989",
+      "size": 3432
+    }
+  ],
+  "categories": {
+    "ai_services": 2,
+    "documentation": 3,
+    "test_files": 2
+  }
+}

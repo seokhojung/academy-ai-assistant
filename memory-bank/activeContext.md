@@ -26,6 +26,64 @@
 
 ## 현재 작업 상태 (2024-12-19)
 
+### ✅ **완료: AI 연결 문제 해결 (배포 환경)**
+
+#### **발견된 문제점**
+1. **Vercel 설정 오류**: `vercel.json`에서 `NEXT_PUBLIC_API_URL`이 잘못된 URL로 설정됨
+   - 잘못된 URL: `https://your-render-app.onrender.com/api`
+   - 올바른 URL: `https://academy-ai-assistant.onrender.com/api`
+
+2. **API_BASE 설정 오류**: 프론트엔드 API 클라이언트에서 기본값에 `/api` 경로 누락
+   - 잘못된 설정: `https://academy-ai-assistant.onrender.com`
+   - 올바른 설정: `https://academy-ai-assistant.onrender.com/api`
+
+3. **빌드 오류**: 백업 폴더의 중복 파일로 인한 TypeScript 컴파일 오류
+
+#### **구현된 해결책**
+
+##### **1. Vercel 설정 수정**
+- **vercel.json 업데이트**: 올바른 Render API URL로 수정
+- **rewrites 설정 수정**: API 프록시 경로 수정
+- **환경 변수 설정**: `NEXT_PUBLIC_API_URL` 올바른 값으로 설정
+
+##### **2. API 클라이언트 수정**
+- **API_BASE 기본값 수정**: `/api` 경로 추가
+- **배포 환경 URL 수정**: `https://academy-ai-assistant.onrender.com/api`
+
+##### **3. 빌드 문제 해결**
+- **백업 폴더 제거**: 중복 파일로 인한 컴파일 오류 해결
+- **.gitignore 업데이트**: 백업 폴더 제외 설정 추가
+- **package.json 수정**: Windows 환경에 맞는 clean 스크립트 수정
+
+#### **수정된 파일들**
+```bash
+# Vercel 설정
+frontend/vercel.json
+- NEXT_PUBLIC_API_URL: https://academy-ai-assistant.onrender.com/api
+- rewrites: https://academy-ai-assistant.onrender.com/api/$1
+
+# API 클라이언트
+frontend/src/lib/api.ts
+- API_BASE 기본값: https://academy-ai-assistant.onrender.com/api
+
+# 빌드 설정
+frontend/package.json
+- clean 스크립트: Windows 환경에 맞게 수정
+frontend/.gitignore
+- 백업 폴더 제외: /backup/
+```
+
+#### **검증 결과**
+- ✅ **백엔드 서버 정상**: `https://academy-ai-assistant.onrender.com/health` 응답 확인
+- ✅ **AI 엔드포인트 정상**: `POST /api/v1/ai/chat/test` 직접 테스트 성공
+- ✅ **프론트엔드 빌드 성공**: TypeScript 컴파일 및 빌드 완료
+- ✅ **로컬 서버 시작**: 개발 서버 정상 실행
+
+#### **다음 단계**
+1. **Vercel 재배포**: 수정된 설정으로 프론트엔드 재배포
+2. **배포 후 테스트**: AI 채팅 기능 정상 작동 확인
+3. **사용자 테스트**: 실제 사용 시나리오에서의 동작 검증
+
 ### ✅ **완료: AI 서비스 개선 및 테이블 렌더링 문제 해결**
 
 #### **해결된 문제들**

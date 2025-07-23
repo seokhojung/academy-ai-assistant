@@ -1,0 +1,35 @@
+{
+  "cleanup_info": {
+    "timestamp": "20250722_135609",
+    "total_items_removed": 3,
+    "total_size_freed": 0,
+    "total_files_freed": 6
+  },
+  "removed_items": [
+    {
+      "path": "lib",
+      "file_count": 3,
+      "reason": "루트 레벨 라이브러리 (src/lib로 통합됨)",
+      "type": "directory",
+      "timestamp": "2025-07-22T13:56:09.862366"
+    },
+    {
+      "path": "components",
+      "file_count": 3,
+      "reason": "루트 레벨 컴포넌트 (src/components로 통합됨)",
+      "type": "directory",
+      "timestamp": "2025-07-22T13:56:09.863366"
+    },
+    {
+      "path": "hooks",
+      "file_count": 0,
+      "reason": "루트 레벨 훅 (src/hooks로 통합됨)",
+      "type": "directory",
+      "timestamp": "2025-07-22T13:56:09.865476"
+    }
+  ],
+  "categories": {
+    "directories": 3,
+    "files": 0
+  }
+}
