@@ -202,6 +202,11 @@ def migrate_local_data_to_postgresql():
                             if 'id' in row_data:
                                 del row_data['id']
                             
+                            # 데이터 타입 변환
+                            if 'is_active' in row_data:
+                                # SQLite의 integer (0,1)를 PostgreSQL boolean으로 변환
+                                row_data['is_active'] = bool(row_data['is_active']) if row_data['is_active'] is not None else True
+                            
                             # SQL 쿼리 생성
                             columns = list(row_data.keys())
                             placeholders = ', '.join([':' + col for col in columns])
