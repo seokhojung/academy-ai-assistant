@@ -426,6 +426,34 @@ def force_reset_and_migrate():
         print(f"  🎓 강의: {lecture_count}개")
     
     print(f"🎉 PostgreSQL이 academy.db와 완전히 동일해졌습니다!")
+    
+    # 4. 엑셀 미리보기 캐시 재생성
+    print("🔄 엑셀 미리보기 캐시 재생성 중...")
+    try:
+        from app.api.v1.excel_preview import save_excel_preview_data
+        with Session(postgres_engine) as cache_session:
+            # 학생 캐시 재생성
+            students = cache_session.query(Student).all()
+            student_data = [{"이름": s.name, "학년": s.grade, "이메일": s.email} for s in students]
+            save_excel_preview_data("students", student_data)
+            print(f"  ✅ students 캐시: {len(student_data)}개")
+            
+            # 교사 캐시 재생성  
+            teachers = cache_session.query(Teacher).all()
+            teacher_data = [{"이름": t.name, "과목": t.subject, "이메일": t.email} for t in teachers]
+            save_excel_preview_data("teachers", teacher_data)
+            print(f"  ✅ teachers 캐시: {len(teacher_data)}개")
+            
+            # 교재 캐시 재생성
+            materials = cache_session.query(Material).all()
+            material_data = [{"이름": m.name, "과목": m.subject, "수량": m.quantity} for m in materials]
+            save_excel_preview_data("materials", material_data)
+            print(f"  ✅ materials 캐시: {len(material_data)}개")
+            
+        print("✅ 엑셀 미리보기 캐시 재생성 완료!")
+    except Exception as cache_error:
+        print(f"⚠️ 캐시 재생성 실패: {cache_error}")
+    
     return True
 
 @asynccontextmanager
