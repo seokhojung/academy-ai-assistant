@@ -13,33 +13,49 @@ router = APIRouter()
 def init_sample_data(session: Session = Depends(get_session)) -> Dict[str, Any]:
     """배포 환경에 샘플 데이터 초기화"""
     try:
-        # 강사 데이터 추가
+        # 먼저 PostgreSQL 스키마 확인
+        print("=== PostgreSQL 스키마 확인 ===")
+        
+        # material 테이블 스키마 확인
+        result = session.exec(text("""
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'material' ORDER BY ordinal_position;
+        """))
+        material_columns = [row[0] for row in result]
+        print(f"Material 컬럼: {material_columns}")
+        
+        # 강사 데이터 추가 (기본 필드만)
         teachers_data = [
-            Teacher(name="김수학", subject="수학", email="kim.math@academy.com", phone="010-1234-5678"),
-            Teacher(name="이영어", subject="영어", email="lee.english@academy.com", phone="010-2345-6789"),
-            Teacher(name="박과학", subject="과학", email="park.science@academy.com", phone="010-3456-7890"),
-            Teacher(name="최국어", subject="국어", email="choi.korean@academy.com", phone="010-4567-8901"),
+            {"name": "김수학", "subject": "수학", "email": "kim.math@academy.com", "phone": "010-1234-5678"},
+            {"name": "이영어", "subject": "영어", "email": "lee.english@academy.com", "phone": "010-2345-6789"},
+            {"name": "박과학", "subject": "과학", "email": "park.science@academy.com", "phone": "010-3456-7890"},
+            {"name": "최국어", "subject": "국어", "email": "choi.korean@academy.com", "phone": "010-4567-8901"},
         ]
         
-        for teacher in teachers_data:
-            existing = session.exec(select(Teacher).where(Teacher.email == teacher.email)).first()
+        for teacher_data in teachers_data:
+            existing = session.exec(select(Teacher).where(Teacher.email == teacher_data["email"])).first()
             if not existing:
+                teacher = Teacher(**teacher_data)
                 session.add(teacher)
         
         session.commit()
         
-        # 교재 데이터 추가 (publisher 필드 제거)
-        materials_data = [
-            Material(name="중등 수학 기초", subject="수학", grade="중1", author="김수학"),
-            Material(name="고등 영어 독해", subject="영어", grade="고1", author="이영어"),
-            Material(name="중등 과학 실험", subject="과학", grade="중2", author="박과학"),
-            Material(name="고등 국어 문학", subject="국어", grade="고2", author="최국어"),
-        ]
-        
-        for material in materials_data:
-            existing = session.exec(select(Material).where(Material.name == material.name)).first()
-            if not existing:
-                session.add(material)
+        # 교재 데이터 추가 (PostgreSQL 스키마에 맞게)
+        if "name" in material_columns and "subject" in material_columns and "grade" in material_columns:
+            materials_data = [
+                {"name": "중등 수학 기초", "subject": "수학", "grade": "중1"},
+                {"name": "고등 영어 독해", "subject": "영어", "grade": "고1"},
+                {"name": "중등 과학 실험", "subject": "과학", "grade": "중2"},
+                {"name": "고등 국어 문학", "subject": "국어", "grade": "고2"},
+            ]
+            
+            for material_data in materials_data:
+                existing = session.exec(select(Material).where(Material.name == material_data["name"])).first()
+                if not existing:
+                    material = Material(**material_data)
+                    session.add(material)
+        else:
+            print("❌ Material 테이블에 필요한 컬럼이 없습니다")
         
         session.commit()
         
