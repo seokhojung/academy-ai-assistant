@@ -264,6 +264,170 @@ def add_sample_data_directly(session):
     print("  실제 로컬 데이터만 사용합니다.")
     return
 
+def force_reset_and_migrate():
+    """PostgreSQL 강제 완전 초기화 및 academy.db 마이그레이션"""
+    from app.core.config import get_settings
+    from sqlalchemy import create_engine, text
+    from sqlmodel import Session
+    from datetime import datetime
+    
+    settings = get_settings()
+    
+    # academy.db 경로 (Render에서는 업로드된 파일)
+    sqlite_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "academy.db")
+    if not os.path.exists(sqlite_path):
+        print(f"❌ SQLite 파일 없음: {sqlite_path}")
+        return False
+        
+    sqlite_engine = create_engine(f"sqlite:///{sqlite_path}")
+    
+    # PostgreSQL 연결 확인
+    if not settings.database_url or not settings.database_url.startswith("postgresql"):
+        print("❌ PostgreSQL 연결 정보 없음")
+        return False
+    
+    postgres_engine = create_engine(settings.database_url)
+    print(f"✅ PostgreSQL 연결 성공")
+    
+    # 1. PostgreSQL 모든 테이블 완전 삭제
+    print("🗑️ PostgreSQL 모든 테이블 삭제...")
+    with postgres_engine.connect() as conn:
+        # 모든 테이블 목록 가져오기
+        result = conn.execute(text("""
+            SELECT tablename FROM pg_tables 
+            WHERE schemaname = 'public'
+        """))
+        tables = [row[0] for row in result.fetchall()]
+        
+        # 각 테이블 삭제
+        for table in tables:
+            print(f"  🗑️ 테이블 삭제: {table}")
+            conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+        conn.commit()
+    
+    print("✅ 모든 테이블 삭제 완료!")
+    
+    # 2. 새 테이블 생성
+    print("🏗️ 새 테이블 생성...")
+    from app.core.database import create_db_and_tables
+    create_db_and_tables()
+    print("✅ 새 테이블 생성 완료!")
+    
+    # 3. 데이터 마이그레이션
+    print("📊 academy.db → PostgreSQL 데이터 마이그레이션...")
+    
+    # Students
+    with Session(sqlite_engine) as sqlite_session, Session(postgres_engine) as postgres_session:
+        students = sqlite_session.exec(text("SELECT * FROM student")).fetchall()
+        print(f"  📚 학생: {len(students)}개")
+        for row in students:
+            from app.models.student import Student
+            student = Student(
+                name=row[1],
+                email=row[2] if row[2] else f"student{row[0]}@example.com",
+                phone=row[3] if row[3] else "",
+                grade=row[4] if row[4] else "",
+                school=row[5] if row[5] else "",
+                parent_name=row[6] if row[6] else "",
+                parent_phone=row[7] if row[7] else "",
+                address=row[8] if row[8] else "",
+                notes=row[9] if row[9] else "",
+                enrollment_date=datetime.fromisoformat(row[10]) if row[10] else datetime.now(),
+                is_active=bool(row[11]) if row[11] is not None else True,
+                created_at=datetime.fromisoformat(row[12]) if row[12] else datetime.now(),
+                updated_at=datetime.fromisoformat(row[13]) if row[13] else datetime.now()
+            )
+            postgres_session.add(student)
+        postgres_session.commit()
+    
+    # Teachers  
+    with Session(sqlite_engine) as sqlite_session, Session(postgres_engine) as postgres_session:
+        teachers = sqlite_session.exec(text("SELECT * FROM teacher")).fetchall()
+        print(f"  👨‍🏫 교사: {len(teachers)}개")
+        for row in teachers:
+            from app.models.teacher import Teacher
+            teacher = Teacher(
+                name=row[1],
+                email=row[2] if row[2] else f"teacher{row[0]}@example.com",
+                phone=row[3] if row[3] else "",
+                subject=row[4] if row[4] else "",
+                hire_date=datetime.fromisoformat(row[5]) if row[5] else datetime.now(),
+                salary=float(row[6]) if row[6] else 0.0,
+                notes=row[7] if row[7] else "",
+                is_active=bool(row[8]) if row[8] is not None else True,
+                created_at=datetime.fromisoformat(row[9]) if row[9] else datetime.now(),
+                updated_at=datetime.fromisoformat(row[10]) if row[10] else datetime.now()
+            )
+            postgres_session.add(teacher)
+        postgres_session.commit()
+    
+    # Materials
+    with Session(sqlite_engine) as sqlite_session, Session(postgres_engine) as postgres_session:
+        materials = sqlite_session.exec(text("SELECT * FROM material")).fetchall()
+        print(f"  📖 교재: {len(materials)}개")
+        for row in materials:
+            from app.models.material import Material
+            material = Material(
+                title=row[1],
+                category=row[2] if row[2] else "",
+                author=row[3] if row[3] else "",
+                publisher=row[4] if row[4] else "",
+                isbn=row[5] if row[5] else "",
+                description=row[6] if row[6] else "",
+                publication_date=datetime.fromisoformat(row[7]) if row[7] else datetime.now(),
+                edition=row[8] if row[8] else "",
+                quantity=int(row[9]) if row[9] else 0,
+                min_quantity=int(row[10]) if row[10] else 0,
+                price=float(row[11]) if row[11] else 0.0,
+                expiry_date=datetime.fromisoformat(row[12]) if row[12] else None,
+                is_active=bool(row[13]) if row[13] is not None else True,
+                created_at=datetime.fromisoformat(row[14]) if row[14] else datetime.now(),
+                updated_at=datetime.fromisoformat(row[15]) if row[15] else datetime.now()
+            )
+            postgres_session.add(material)
+        postgres_session.commit()
+    
+    # Lectures
+    with Session(sqlite_engine) as sqlite_session, Session(postgres_engine) as postgres_session:
+        lectures = sqlite_session.exec(text("SELECT * FROM lecture")).fetchall()
+        print(f"  🎓 강의: {len(lectures)}개")
+        for row in lectures:
+            from app.models.lecture import Lecture
+            lecture = Lecture(
+                title=row[1],
+                subject=row[2] if row[2] else "",
+                teacher_id=int(row[3]) if row[3] else None,
+                schedule=row[4] if row[4] else "",
+                classroom=row[5] if row[5] else "",
+                capacity=int(row[6]) if row[6] else 0,
+                current_enrollment=int(row[7]) if row[7] else 0,
+                start_date=datetime.fromisoformat(row[8]) if row[8] else datetime.now(),
+                end_date=datetime.fromisoformat(row[9]) if row[9] else datetime.now(),
+                description=row[10] if row[10] else "",
+                fee=float(row[11]) if row[11] else 0.0,
+                is_active=bool(row[12]) if row[12] is not None else True,
+                created_at=datetime.fromisoformat(row[13]) if row[13] else datetime.now(),
+                updated_at=datetime.fromisoformat(row[14]) if row[14] else datetime.now()
+            )
+            postgres_session.add(lecture)
+        postgres_session.commit()
+    
+    # 최종 확인
+    print("\n🔍 마이그레이션 결과:")
+    with Session(postgres_engine) as session:
+        student_count = len(session.exec(text("SELECT * FROM student")).fetchall())
+        teacher_count = len(session.exec(text("SELECT * FROM teacher")).fetchall())
+        material_count = len(session.exec(text("SELECT * FROM material")).fetchall())
+        lecture_count = len(session.exec(text("SELECT * FROM lecture")).fetchall())
+        
+        print(f"  📚 학생: {student_count}명")
+        print(f"  👨‍🏫 교사: {teacher_count}명")
+        print(f"  📖 교재: {material_count}개")
+        print(f"  🎓 강의: {lecture_count}개")
+    
+    print(f"🎉 PostgreSQL이 academy.db와 완전히 동일해졌습니다!")
+    return True
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 시 실행되는 함수"""
@@ -285,8 +449,19 @@ async def lifespan(app: FastAPI):
             print(f"❌ 마이그레이션 실패: {e}")
             # 마이그레이션 실패 시에만 기본 테이블 생성
             create_db_and_tables()
+    elif os.getenv("RUN_FORCE_RESET") == "true":
+        print("🔥 PostgreSQL 강제 완전 초기화 시작...")
+        try:
+            # PostgreSQL 강제 초기화 및 완전 마이그레이션
+            force_reset_and_migrate()
+            print("🎉 PostgreSQL 강제 초기화 및 완전 마이그레이션 성공!")
+        except Exception as e:
+            print(f"❌ 강제 초기화 실패: {e}")
+            import traceback
+            traceback.print_exc()
+            create_db_and_tables()
     else:
-        print("📝 마이그레이션 스킵 (RUN_MIGRATION=true 설정 시 실행)")
+        print("📝 마이그레이션 스킵 (RUN_MIGRATION=true 또는 RUN_FORCE_RESET=true 설정 시 실행)")
         # 마이그레이션 안 할 때만 기존 테이블 유지
         create_db_and_tables()
     
