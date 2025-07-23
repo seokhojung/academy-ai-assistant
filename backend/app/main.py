@@ -270,20 +270,26 @@ async def lifespan(app: FastAPI):
     # 시작 시
     print("🚀 애플리케이션 시작...")
     
-    # 자동 마이그레이션 비활성화 (수동 실행으로 변경)
-    print("📝 자동 마이그레이션이 비활성화되었습니다.")
-    print("  수동으로 reset_postgresql_clean.py를 실행해주세요.")
-    
-    # 강제 스키마 수정만 실행 (데이터 삽입 없음)
-    # force_fix_postgresql_schema()
-    
-    # 로컬 데이터 마이그레이션 비활성화
-    # migrate_local_data_to_postgresql()
+    # 일회성 마이그레이션 체크
+    if os.getenv("RUN_MIGRATION") == "true":
+        print("🔄 일회성 마이그레이션 실행...")
+        try:
+            # reset_postgresql_clean 함수 import 및 실행
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+            from reset_postgresql_clean import reset_postgresql_clean
+            reset_postgresql_clean()
+            print("✅ 마이그레이션 완료!")
+        except Exception as e:
+            print(f"❌ 마이그레이션 실패: {e}")
+    else:
+        print("📝 마이그레이션 스킵 (RUN_MIGRATION=true 설정 시 실행)")
     
     # 기존 데이터베이스 초기화 (테이블 생성만)
     create_db_and_tables()
     
-    print("✅ 애플리케이션 초기화 완료 (데이터 삽입 없음)")
+    print("✅ 애플리케이션 초기화 완료")
     
     yield
     
