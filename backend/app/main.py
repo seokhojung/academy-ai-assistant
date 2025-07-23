@@ -297,10 +297,10 @@ def force_reset_and_migrate():
         """))
         tables = [row[0] for row in result.fetchall()]
         
-        # 각 테이블 삭제
+        # 각 테이블 삭제 (예약어는 큰따옴표로 감싸기)
         for table in tables:
             print(f"  🗑️ 테이블 삭제: {table}")
-            conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+            conn.execute(text(f'DROP TABLE IF EXISTS "{table}" CASCADE;'))
         conn.commit()
     
     print("✅ 모든 테이블 삭제 완료!")
