@@ -8,7 +8,7 @@ class Material(SQLModel, table=True):
     name: str = Field(max_length=200)
     subject: str = Field(max_length=100)
     grade: str = Field(max_length=20)
-    # publisher: Optional[str] = Field(max_length=100, default=None)  # PostgreSQL 호환성을 위해 임시 제거
+    publisher: Optional[str] = Field(max_length=100, default=None)  # 다시 추가
     author: Optional[str] = Field(max_length=100, default=None)
     isbn: Optional[str] = Field(max_length=20, default=None)
     description: Optional[str] = Field(max_length=500, default=None)
@@ -27,7 +27,7 @@ class MaterialCreate(SQLModel):
     name: str = Field(max_length=200)
     subject: str = Field(max_length=100)
     grade: str = Field(max_length=20)
-    # publisher: Optional[str] = Field(max_length=100, default=None)  # PostgreSQL 호환성을 위해 임시 제거
+    publisher: Optional[str] = Field(max_length=100, default=None)  # 다시 추가
     author: Optional[str] = Field(max_length=100, default=None)
     isbn: Optional[str] = Field(max_length=20, default=None)
     description: Optional[str] = Field(max_length=500, default=None)
@@ -44,7 +44,7 @@ class MaterialUpdate(SQLModel):
     name: Optional[str] = Field(max_length=200, default=None)
     subject: Optional[str] = Field(max_length=100, default=None)
     grade: Optional[str] = Field(max_length=20, default=None)
-    # publisher: Optional[str] = Field(max_length=100, default=None)  # PostgreSQL 호환성을 위해 임시 제거
+    publisher: Optional[str] = Field(max_length=100, default=None)  # 다시 추가
     author: Optional[str] = Field(max_length=100, default=None)
     isbn: Optional[str] = Field(max_length=20, default=None)
     description: Optional[str] = Field(max_length=500, default=None)

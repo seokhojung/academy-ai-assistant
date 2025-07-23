@@ -54,89 +54,119 @@ class ContextBuilder:
             print(f"[ContextBuilder] API URL: {base_url}")
             
             # API를 통해 데이터 가져오기 (대시보드와 동일한 소스)
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 # 학생 정보
-                students_response = await client.get(f"{base_url}/students/")
-                if students_response.status_code == 200:
-                    students_data = students_response.json()
-                    students = students_data.get('students', []) if isinstance(students_data, dict) else students_data
-                    context_data['students'] = [
-                        {
-                            'name': s.get('name', ''),
-                            'grade': s.get('grade', ''),
-                            'email': s.get('email', ''),
-                            'phone': s.get('phone', ''),
-                            'tuition_fee': s.get('tuition_fee', 0),
-                            'is_active': s.get('is_active', True)
-                        } for s in students
-                    ]
-                    print(f"[ContextBuilder] API에서 학생 {len(context_data['students'])}명 조회")
-                else:
-                    print(f"[ContextBuilder] 학생 API 오류: {students_response.status_code}")
+                try:
+                    print(f"[ContextBuilder] 학생 API 호출: {base_url}/students/")
+                    students_response = await client.get(f"{base_url}/students/")
+                    print(f"[ContextBuilder] 학생 API 응답 코드: {students_response.status_code}")
+                    if students_response.status_code == 200:
+                        students_data = students_response.json()
+                        print(f"[ContextBuilder] 학생 API 응답 데이터: {type(students_data)}")
+                        students = students_data.get('students', []) if isinstance(students_data, dict) else students_data
+                        context_data['students'] = [
+                            {
+                                'name': s.get('name', ''),
+                                'grade': s.get('grade', ''),
+                                'email': s.get('email', ''),
+                                'phone': s.get('phone', ''),
+                                'tuition_fee': s.get('tuition_fee', 0),
+                                'is_active': s.get('is_active', True)
+                            } for s in students
+                        ]
+                        print(f"[ContextBuilder] API에서 학생 {len(context_data['students'])}명 조회")
+                    else:
+                        print(f"[ContextBuilder] 학생 API 오류: {students_response.status_code}")
+                        print(f"[ContextBuilder] 학생 API 응답 내용: {students_response.text}")
+                except Exception as e:
+                    print(f"[ContextBuilder] 학생 API 호출 예외: {e}")
                 
                 # 강사 정보
-                teachers_response = await client.get(f"{base_url}/teachers/")
-                if teachers_response.status_code == 200:
-                    teachers_data = teachers_response.json()
-                    teachers = teachers_data.get('teachers', []) if isinstance(teachers_data, dict) else teachers_data
-                    context_data['teachers'] = [
-                        {
-                            'name': t.get('name', ''),
-                            'subject': t.get('subject', ''),
-                            'email': t.get('email', ''),
-                            'phone': t.get('phone', ''),
-                            'hourly_rate': t.get('hourly_rate', 0),
-                            'is_active': t.get('is_active', True)
-                        } for t in teachers
-                    ]
-                    print(f"[ContextBuilder] API에서 강사 {len(context_data['teachers'])}명 조회")
-                else:
-                    print(f"[ContextBuilder] 강사 API 오류: {teachers_response.status_code}")
+                try:
+                    print(f"[ContextBuilder] 강사 API 호출: {base_url}/teachers/")
+                    teachers_response = await client.get(f"{base_url}/teachers/")
+                    print(f"[ContextBuilder] 강사 API 응답 코드: {teachers_response.status_code}")
+                    if teachers_response.status_code == 200:
+                        teachers_data = teachers_response.json()
+                        print(f"[ContextBuilder] 강사 API 응답 데이터: {type(teachers_data)}")
+                        teachers = teachers_data.get('teachers', []) if isinstance(teachers_data, dict) else teachers_data
+                        context_data['teachers'] = [
+                            {
+                                'name': t.get('name', ''),
+                                'subject': t.get('subject', ''),
+                                'email': t.get('email', ''),
+                                'phone': t.get('phone', ''),
+                                'hourly_rate': t.get('hourly_rate', 0),
+                                'is_active': t.get('is_active', True)
+                            } for t in teachers
+                        ]
+                        print(f"[ContextBuilder] API에서 강사 {len(context_data['teachers'])}명 조회")
+                    else:
+                        print(f"[ContextBuilder] 강사 API 오류: {teachers_response.status_code}")
+                        print(f"[ContextBuilder] 강사 API 응답 내용: {teachers_response.text}")
+                except Exception as e:
+                    print(f"[ContextBuilder] 강사 API 호출 예외: {e}")
                 
                 # 교재 정보
-                materials_response = await client.get(f"{base_url}/materials/")
-                if materials_response.status_code == 200:
-                    materials_data = materials_response.json()
-                    materials = materials_data.get('materials', []) if isinstance(materials_data, dict) else materials_data
-                    context_data['materials'] = [
-                        {
-                            'name': m.get('name', ''),
-                            'subject': m.get('subject', ''),
-                            'grade': m.get('grade', ''),
-                            'publisher': m.get('publisher', ''),
-                            'quantity': m.get('quantity', 0),
-                            'price': m.get('price', 0),
-                            'is_active': m.get('is_active', True)
-                        } for m in materials
-                    ]
-                    print(f"[ContextBuilder] API에서 교재 {len(context_data['materials'])}개 조회")
-                else:
-                    print(f"[ContextBuilder] 교재 API 오류: {materials_response.status_code}")
+                try:
+                    print(f"[ContextBuilder] 교재 API 호출: {base_url}/materials/")
+                    materials_response = await client.get(f"{base_url}/materials/")
+                    print(f"[ContextBuilder] 교재 API 응답 코드: {materials_response.status_code}")
+                    if materials_response.status_code == 200:
+                        materials_data = materials_response.json()
+                        print(f"[ContextBuilder] 교재 API 응답 데이터: {type(materials_data)}")
+                        materials = materials_data.get('materials', []) if isinstance(materials_data, dict) else materials_data
+                        context_data['materials'] = [
+                            {
+                                'name': m.get('name', ''),
+                                'subject': m.get('subject', ''),
+                                'grade': m.get('grade', ''),
+                                'publisher': m.get('publisher', ''),
+                                'quantity': m.get('quantity', 0),
+                                'price': m.get('price', 0),
+                                'is_active': m.get('is_active', True)
+                            } for m in materials
+                        ]
+                        print(f"[ContextBuilder] API에서 교재 {len(context_data['materials'])}개 조회")
+                    else:
+                        print(f"[ContextBuilder] 교재 API 오류: {materials_response.status_code}")
+                        print(f"[ContextBuilder] 교재 API 응답 내용: {materials_response.text}")
+                except Exception as e:
+                    print(f"[ContextBuilder] 교재 API 호출 예외: {e}")
                 
                 # 강의 정보
-                lectures_response = await client.get(f"{base_url}/lectures/")
-                if lectures_response.status_code == 200:
-                    lectures_data = lectures_response.json()
-                    lectures = lectures_data.get('lectures', []) if isinstance(lectures_data, dict) else lectures_data
-                    context_data['lectures'] = [
-                        {
-                            'title': l.get('title', ''),
-                            'subject': l.get('subject', ''),
-                            'grade': l.get('grade', ''),
-                            'schedule': l.get('schedule', ''),
-                            'classroom': l.get('classroom', ''),
-                            'max_students': l.get('max_students', 0),
-                            'current_students': l.get('current_students', 0),
-                            'tuition_fee': l.get('tuition_fee', 0),
-                            'is_active': l.get('is_active', True)
-                        } for l in lectures
-                    ]
-                    print(f"[ContextBuilder] API에서 강의 {len(context_data['lectures'])}개 조회")
-                else:
-                    print(f"[ContextBuilder] 강의 API 오류: {lectures_response.status_code}")
+                try:
+                    print(f"[ContextBuilder] 강의 API 호출: {base_url}/lectures/")
+                    lectures_response = await client.get(f"{base_url}/lectures/")
+                    print(f"[ContextBuilder] 강의 API 응답 코드: {lectures_response.status_code}")
+                    if lectures_response.status_code == 200:
+                        lectures_data = lectures_response.json()
+                        print(f"[ContextBuilder] 강의 API 응답 데이터: {type(lectures_data)}")
+                        lectures = lectures_data.get('lectures', []) if isinstance(lectures_data, dict) else lectures_data
+                        context_data['lectures'] = [
+                            {
+                                'title': l.get('title', ''),
+                                'subject': l.get('subject', ''),
+                                'grade': l.get('grade', ''),
+                                'schedule': l.get('schedule', ''),
+                                'classroom': l.get('classroom', ''),
+                                'max_students': l.get('max_students', 0),
+                                'current_students': l.get('current_students', 0),
+                                'tuition_fee': l.get('tuition_fee', 0),
+                                'is_active': l.get('is_active', True)
+                            } for l in lectures
+                        ]
+                        print(f"[ContextBuilder] API에서 강의 {len(context_data['lectures'])}개 조회")
+                    else:
+                        print(f"[ContextBuilder] 강의 API 오류: {lectures_response.status_code}")
+                        print(f"[ContextBuilder] 강의 API 응답 내용: {lectures_response.text}")
+                except Exception as e:
+                    print(f"[ContextBuilder] 강의 API 호출 예외: {e}")
                 
         except Exception as e:
             print(f"[ContextBuilder] API 조회 오류: {e}")
+            import traceback
+            traceback.print_exc()
             return {}
         
         return context_data
