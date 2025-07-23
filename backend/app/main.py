@@ -266,12 +266,10 @@ def add_sample_data_directly(session):
 
 def force_reset_and_migrate():
     """PostgreSQL 강제 완전 초기화 및 academy.db 마이그레이션"""
-    from app.core.config import get_settings
+    from app.core.config import settings
     from sqlalchemy import create_engine, text
     from sqlmodel import Session
     from datetime import datetime
-    
-    settings = get_settings()
     
     # academy.db 경로 (Render에서는 업로드된 파일)
     sqlite_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "academy.db")
