@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import text
 
 from app.core.database import create_db_and_tables, get_session
-from app.api.v1 import ai, auth, lectures, materials, students, teachers, user, excel_preview
+from app.api.v1 import ai, auth, lectures, materials, students, teachers, user, excel_preview, statistics
 
 # 강제 스키마 수정 함수 추가
 def force_fix_postgresql_schema():
@@ -455,18 +455,16 @@ async def lifespan(app: FastAPI):
     # 시작 시
     print("🚀 애플리케이션 시작...")
     
-    # 🔥🔥🔥 임시 하드코딩: 무조건 강제 초기화 실행 🔥🔥🔥
-    print("🔥🔥🔥 하드코딩된 강제 초기화 시작...")
+    # 안전한 초기화만 실행 (강제 리셋 제거)
+    print("🔧 안전한 초기화 시작...")
     try:
-        force_reset_and_migrate()
-        print("🎉🎉🎉 하드코딩 강제 초기화 성공!")
-    except Exception as e:
-        print(f"❌❌❌ 하드코딩 강제 초기화 실패: {e}")
-        import traceback
-        traceback.print_exc()
-        # 실패 시에만 기본 테이블 생성
         from app.core.database import create_db_and_tables
         create_db_and_tables()
+        print("✅ 안전한 초기화 완료!")
+    except Exception as e:
+        print(f"❌ 초기화 실패: {e}")
+        import traceback
+        traceback.print_exc()
     
     print("✅ 애플리케이션 초기화 완료")
     
@@ -501,6 +499,7 @@ app.include_router(students.router, prefix="/api/v1/students", tags=["Students"]
 app.include_router(teachers.router, prefix="/api/v1/teachers", tags=["Teachers"])
 app.include_router(user.router, prefix="/api/v1/user", tags=["User"])
 app.include_router(excel_preview.router, prefix="/api/v1/excel-preview", tags=["Excel Preview"])
+app.include_router(statistics.router, prefix="/api/v1", tags=["Statistics"])
 
 @app.get("/")
 async def root():

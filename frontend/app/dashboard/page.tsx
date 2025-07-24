@@ -11,6 +11,13 @@ import { Users, GraduationCap, BookOpen, Calendar, Bot } from 'lucide-react';
 import { Calendar as CalendarComponent } from '@/components/ui/Calendar';
 import { Chart, GradeChart, AttendanceChart } from '@/components/ui/Chart';
 import AIChatBox from '@/components/ai-chat/AIChatBox';
+import { useAllStatistics } from '@/hooks/useStatistics';
+import { 
+  StudentStatisticsChart, 
+  LectureStatisticsChart, 
+  TeacherStatisticsChart, 
+  MaterialStatisticsChart 
+} from '@/components/statistics/StatisticsCharts';
 
 interface DashboardStats {
   students: number;
@@ -29,6 +36,16 @@ export default function DashboardPage() {
     activeCourses: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 실제 DB 기반 통계 데이터
+  const { 
+    studentStats, 
+    lectureStats, 
+    teacherStats, 
+    materialStats, 
+    isLoading: statsLoading, 
+    error: statsError 
+  } = useAllStatistics();
 
   useEffect(() => {
     // 인증 토큰 확인
@@ -211,77 +228,33 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 캘린더 및 차트 섹션 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          {/* 캘린더 */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm border border-white/20 rounded-xl p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">수업 일정</h2>
-            <CalendarComponent
-              events={[
-                {
-                  id: '1',
-                  title: '수학 수업',
-                  date: new Date(2025, 0, 15),
-                  type: 'class'
-                },
-                {
-                  id: '2',
-                  title: '영어 시험',
-                  date: new Date(2025, 0, 20),
-                  type: 'exam'
-                },
-                {
-                  id: '3',
-                  title: '학부모 상담',
-                  date: new Date(2025, 0, 25),
-                  type: 'event'
-                }
-              ]}
-              onDateSelect={(date) => {
-                toast({
-                  title: "날짜 선택",
-                  description: `${date.toLocaleDateString()} 날짜가 선택되었습니다.`,
-                  variant: "info",
-                });
-              }}
-              onEventClick={(event) => {
-                toast({
-                  title: "이벤트 클릭",
-                  description: `${event.title} 이벤트가 선택되었습니다.`,
-                  variant: "info",
-                });
-              }}
-            />
+        {/* 실제 DB 기반 통계 섹션 */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">📊 실제 데이터 통계</h2>
+          
+          {/* 학생 통계 */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">👥 학생 통계</h3>
+            <StudentStatisticsChart data={studentStats} />
           </div>
 
-          {/* 차트 */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm border border-white/20 rounded-xl p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">성적 통계</h2>
-            <GradeChart
-              data={[
-                { name: '김철수', grade: 85, value: 85 },
-                { name: '이영희', grade: 92, value: 92 },
-                { name: '박민수', grade: 78, value: 78 },
-                { name: '정수진', grade: 95, value: 95 },
-                { name: '최동현', grade: 88, value: 88 }
-              ]}
-            />
+          {/* 강의 통계 */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">📚 강의 통계</h3>
+            <LectureStatisticsChart data={lectureStats} />
           </div>
-        </div>
 
-        {/* 출석률 차트 */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm border border-white/20 rounded-xl p-6 mt-8">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">월별 출석률</h2>
-          <AttendanceChart
-            data={[
-              { name: '1월', month: '1월', attendance: 95, value: 95 },
-              { name: '2월', month: '2월', attendance: 92, value: 92 },
-              { name: '3월', month: '3월', attendance: 88, value: 88 },
-              { name: '4월', month: '4월', attendance: 90, value: 90 },
-              { name: '5월', month: '5월', attendance: 93, value: 93 },
-              { name: '6월', month: '6월', attendance: 89, value: 89 }
-            ]}
-          />
+          {/* 강사 통계 */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">👨‍🏫 강사 통계</h3>
+            <TeacherStatisticsChart data={teacherStats} />
+          </div>
+
+          {/* 교재 통계 */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">📖 교재 통계</h3>
+            <MaterialStatisticsChart data={materialStats} />
+          </div>
         </div>
       </main>
       
