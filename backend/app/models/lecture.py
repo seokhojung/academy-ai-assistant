@@ -16,6 +16,15 @@ class Lecture(SQLModel, table=True):
     classroom: str = Field(default="")
     is_active: bool = Field(default=True, index=True)
     description: Optional[str] = Field(default=None)
+    
+    # 새로 추가할 필드들
+    difficulty_level: str = Field(default="intermediate")      # 난이도 (beginner, intermediate, advanced)
+    class_duration: int = Field(default=90)                   # 수업 시간 (분)
+    total_sessions: int = Field(default=16)                   # 총 수업 횟수
+    completed_sessions: int = Field(default=0)                # 완료된 수업 횟수
+    student_satisfaction: Optional[float] = Field(default=None)  # 학생 만족도 (1.0-5.0)
+    teacher_rating: Optional[float] = Field(default=None)        # 강사 평가 (1.0-5.0)
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -31,6 +40,14 @@ class LectureCreate(SQLModel):
     classroom: str = ""
     is_active: bool = True
     description: Optional[str] = None
+    
+    # 새로 추가할 필드들
+    difficulty_level: str = "intermediate"
+    class_duration: int = 90
+    total_sessions: int = 16
+    completed_sessions: int = 0
+    student_satisfaction: Optional[float] = None
+    teacher_rating: Optional[float] = None
 
 class LectureUpdate(SQLModel):
     title: Optional[str] = None
@@ -43,4 +60,12 @@ class LectureUpdate(SQLModel):
     schedule: Optional[str] = None
     classroom: Optional[str] = None
     is_active: Optional[bool] = None
-    description: Optional[str] = None 
+    description: Optional[str] = None
+    
+    # 새로 추가할 필드들
+    difficulty_level: Optional[str] = None
+    class_duration: Optional[int] = None
+    total_sessions: Optional[int] = None
+    completed_sessions: Optional[int] = None
+    student_satisfaction: Optional[float] = None
+    teacher_rating: Optional[float] = None 

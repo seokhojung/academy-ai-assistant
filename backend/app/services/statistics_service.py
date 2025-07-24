@@ -233,11 +233,7 @@ class StatisticsService:
                 select(Teacher).where(Teacher.is_active == True)
             ).all()
             
-            print(f"DEBUG: 활성 강사 수: {len(teachers)}")
-            
             for teacher in teachers:
-                print(f"DEBUG: 강사 {teacher.name} 처리 중...")
-                
                 # 해당 강사의 강의들
                 teacher_lectures = self.db.exec(
                     select(Lecture).where(Lecture.teacher_id == teacher.id)
@@ -249,8 +245,6 @@ class StatisticsService:
                     lecture.tuition_fee * lecture.current_students 
                     for lecture in teacher_lectures
                 )
-                
-                print(f"DEBUG: {teacher.name} - 강의 {lecture_count}개, 수강생 {total_students}명")
                 
                 # 평균 수강률 계산
                 if teacher_lectures:
@@ -279,18 +273,16 @@ class StatisticsService:
                 ).all()
                 
                 for subject_lecture in teacher_lectures:
-                    if subject_lecture.subject not in subject_teacher_distribution:
-                        subject_teacher_distribution[subject_lecture.subject] = set()
-                    subject_teacher_distribution[subject_lecture.subject].add(teacher.id)
+                    # subject_lecture는 이미 문자열이므로 직접 사용
+                    if subject_lecture not in subject_teacher_distribution:
+                        subject_teacher_distribution[subject_lecture] = set()
+                    subject_teacher_distribution[subject_lecture].add(teacher.id)
             
             # set을 count로 변환
             subject_teacher_distribution = {
                 subject: len(teacher_ids) 
                 for subject, teacher_ids in subject_teacher_distribution.items()
             }
-            
-            print(f"DEBUG: 최종 결과 - total_teachers: {total_teachers}, active_teachers: {active_teachers}")
-            print(f"DEBUG: teacher_performance 길이: {len(teacher_performance)}")
             
             return {
                 "total_teachers": total_teachers,

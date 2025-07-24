@@ -14,3 +14,76 @@
 2025-07-17 14:36:27 - 강사 추가: 임지구 (지구과학)
 2025-07-17 14:36:27 - ✓ 총 10명의 강사 데이터 추가 완료
 2025-07-17 14:36:27 - ✓ DB에 총 10명의 강사가 등록됨
+2025-07-24 11:02:01 - === 강사 샘플 데이터 추가 시작 ===
+2025-07-24 11:02:01 - [DEBUG] DB URL: sqlite:///./academy.db
+2025-07-24 11:02:01 - ✓ DB 테이블 생성 완료
+2025-07-24 11:02:01 - ❌ 오류 발생: (sqlite3.OperationalError) no such table: teacher
+[SQL: SELECT teacher.id, teacher.name, teacher.email, teacher.phone, teacher.subject, teacher.hourly_rate, teacher.is_active, teacher.experience_years, teacher.education_level, teacher.specialization, teacher.hire_date, teacher.contract_type, teacher.max_lectures, teacher.rating, teacher.total_teaching_hours, teacher.certification, teacher.created_at, teacher.updated_at 
+FROM teacher]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-07-24 11:02:01 - 상세 오류: Traceback (most recent call last):
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such table: teacher
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\add_sample_teachers.py", line 34, in add_sample_teachers
+    existing_teachers = session.exec(select(Teacher)).all()
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlmodel\orm\session.py", line 68, in exec
+    results = super().execute(
+              ^^^^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2308, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2190, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1416, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 516, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2343, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\apf_temp_admin\Desktop\Academy-AI-Assistant\backend\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: teacher
+[SQL: SELECT teacher.id, teacher.name, teacher.email, teacher.phone, teacher.subject, teacher.hourly_rate, teacher.is_active, teacher.experience_years, teacher.education_level, teacher.specialization, teacher.hire_date, teacher.contract_type, teacher.max_lectures, teacher.rating, teacher.total_teaching_hours, teacher.certification, teacher.created_at, teacher.updated_at 
+FROM teacher]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-07-24 11:02:31 - === 강사 샘플 데이터 추가 시작 ===
+2025-07-24 11:02:31 - [DEBUG] DB URL: sqlite:///./academy.db
+2025-07-24 11:02:31 - ✓ DB 테이블 생성 완료
+2025-07-24 11:02:31 - 기존 강사 수: 0
+2025-07-24 11:02:31 - 강사 추가: 김수학 (수학)
+2025-07-24 11:02:31 - 강사 추가: 이영어 (영어)
+2025-07-24 11:02:31 - 강사 추가: 박과학 (과학)
+2025-07-24 11:02:31 - 강사 추가: 최국어 (국어)
+2025-07-24 11:02:31 - 강사 추가: 정사회 (사회)
+2025-07-24 11:02:31 - 강사 추가: 강역사 (역사)
+2025-07-24 11:02:31 - 강사 추가: 조물리 (물리)
+2025-07-24 11:02:31 - 강사 추가: 윤화학 (화학)
+2025-07-24 11:02:31 - 강사 추가: 장생물 (생물)
+2025-07-24 11:02:31 - 강사 추가: 임지구 (지구과학)
+2025-07-24 11:02:31 - ✓ 총 10명의 강사 데이터 추가 완료
+2025-07-24 11:02:31 - ✓ DB에 총 10명의 강사가 등록됨
