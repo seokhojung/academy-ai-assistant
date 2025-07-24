@@ -480,20 +480,31 @@ def clean_migration():
             """))
             tables = [row[0] for row in result.fetchall()]
             
-            # 각 테이블 완전 삭제 (권한 문제 해결)
+            # 각 테이블 완전 삭제 (PostgreSQL 예약어 문제 해결)
             # 외래 키 의존성을 고려한 삭제 순서
-            delete_order = ['lecture', 'material', 'teacher', 'student', 'user', 'usercolumnsettings']
+            delete_order = ['lecture', 'material', 'teacher', 'student', 'usercolumnsettings', 'user']
             
             for table in delete_order:
                 if table in tables:
                     print(f"  🗑️ 테이블 삭제: {table}")
                     try:
-                        # CASCADE로 외래 키 제약 조건도 함께 삭제
-                        conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+                        # PostgreSQL 예약어는 큰따옴표로 감싸기
+                        if table == 'user':
+                            conn.execute(text('DROP TABLE IF EXISTS "user" CASCADE;'))
+                        else:
+                            conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
                         print(f"    ✅ {table} 테이블 삭제 완료")
                     except Exception as e:
                         print(f"    ⚠️ {table} 테이블 삭제 실패: {e}")
-                        # 개별 테이블 삭제 실패해도 계속 진행
+                        # 강제 삭제 시도
+                        try:
+                            if table == 'user':
+                                conn.execute(text('DROP TABLE "user" CASCADE;'))
+                            else:
+                                conn.execute(text(f"DROP TABLE {table} CASCADE;"))
+                            print(f"    ✅ {table} 테이블 강제 삭제 완료")
+                        except Exception as e2:
+                            print(f"    ❌ {table} 테이블 강제 삭제도 실패: {e2}")
                         continue
             
             # 남은 테이블들 삭제
