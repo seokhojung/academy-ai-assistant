@@ -26,88 +26,82 @@ def force_fix_postgresql_schema():
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         
         with SessionLocal() as session:
-            # material 테이블이 존재하는지 확인
-            result = session.execute(text("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'material'
-                );
-            """))
+            # teacher 테이블 스키마 수정
+            print("  📚 teacher 테이블 스키마 수정...")
+            teacher_columns = {
+                'experience_years': 'INTEGER DEFAULT 0',
+                'education_level': 'VARCHAR(50) DEFAULT \'bachelor\'',
+                'specialization': 'VARCHAR(200) DEFAULT \'\'',
+                'hire_date': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'contract_type': 'VARCHAR(50) DEFAULT \'part_time\'',
+                'max_lectures': 'INTEGER DEFAULT 5',
+                'rating': 'DOUBLE PRECISION',
+                'total_teaching_hours': 'INTEGER DEFAULT 0',
+                'certification': 'VARCHAR(500) DEFAULT \'[]\''
+            }
             
-            if not result.scalar():
-                print("  material 테이블이 존재하지 않습니다.")
-                return
+            for col_name, col_def in teacher_columns.items():
+                try:
+                    session.execute(text(f"ALTER TABLE teacher ADD COLUMN IF NOT EXISTS {col_name} {col_def}"))
+                    session.commit()
+                    print(f"    ✅ teacher.{col_name} 추가 완료")
+                except Exception as e:
+                    print(f"    ⚠️ teacher.{col_name}: {e}")
+                    session.rollback()
             
-            # 현재 컬럼 확인
-            result = session.execute(text("""
-                SELECT column_name
-                FROM information_schema.columns 
-                WHERE table_name = 'material'
-                ORDER BY ordinal_position;
-            """))
+            # lecture 테이블 스키마 수정
+            print("  📖 lecture 테이블 스키마 수정...")
+            lecture_columns = {
+                'difficulty_level': 'VARCHAR(50) DEFAULT \'intermediate\'',
+                'class_duration': 'INTEGER DEFAULT 90',
+                'total_sessions': 'INTEGER DEFAULT 16',
+                'completed_sessions': 'INTEGER DEFAULT 0',
+                'student_satisfaction': 'DOUBLE PRECISION',
+                'teacher_rating': 'DOUBLE PRECISION'
+            }
             
-            existing_columns = [row[0] for row in result.fetchall()]
-            print(f"  기존 컬럼: {existing_columns}")
+            for col_name, col_def in lecture_columns.items():
+                try:
+                    session.execute(text(f"ALTER TABLE lecture ADD COLUMN IF NOT EXISTS {col_name} {col_def}"))
+                    session.commit()
+                    print(f"    ✅ lecture.{col_name} 추가 완료")
+                except Exception as e:
+                    print(f"    ⚠️ lecture.{col_name}: {e}")
+                    session.rollback()
             
-            # 누락된 컬럼 추가
-            missing_columns = {
+            # material 테이블 스키마 수정 (기존)
+            print("  📚 material 테이블 스키마 수정...")
+            material_columns = {
                 'author': 'VARCHAR(100)',
                 'publisher': 'VARCHAR(100)',
                 'isbn': 'VARCHAR(20)',
                 'description': 'VARCHAR(500)',
                 'publication_date': 'TIMESTAMP',
                 'edition': 'VARCHAR(20)',
-                'quantity': 'INTEGER',
-                'min_quantity': 'INTEGER',
-                'price': 'DOUBLE PRECISION',
+                'quantity': 'INTEGER DEFAULT 0',
+                'min_quantity': 'INTEGER DEFAULT 5',
+                'price': 'DOUBLE PRECISION DEFAULT 0.0',
                 'expiry_date': 'TIMESTAMP',
-                'is_active': 'BOOLEAN',
-                'created_at': 'TIMESTAMP',
-                'updated_at': 'TIMESTAMP'
+                'is_active': 'BOOLEAN DEFAULT true',
+                'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'updated_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
             }
             
-            for col_name, col_type in missing_columns.items():
-                if col_name not in existing_columns:
-                    print(f"  추가 중: {col_name}")
-                    try:
-                        session.execute(text(f"ALTER TABLE material ADD COLUMN {col_name} {col_type}"))
-                        session.commit()
-                        print(f"    ✅ {col_name} 추가 완료")
-                    except Exception as e:
-                        print(f"    ❌ {col_name} 추가 실패: {e}")
-                        session.rollback()
-                        # 실패해도 계속 진행
-                else:
-                    print(f"  ✅ {col_name}: 이미 존재")
+            for col_name, col_def in material_columns.items():
+                try:
+                    session.execute(text(f"ALTER TABLE material ADD COLUMN IF NOT EXISTS {col_name} {col_def}"))
+                    session.commit()
+                    print(f"    ✅ material.{col_name} 추가 완료")
+                except Exception as e:
+                    print(f"    ⚠️ material.{col_name}: {e}")
+                    session.rollback()
             
-            # 모든 컬럼이 있는지 다시 확인
-            result = session.execute(text("""
-                SELECT column_name
-                FROM information_schema.columns 
-                WHERE table_name = 'material'
-                ORDER BY ordinal_position;
-            """))
-            
-            final_columns = [row[0] for row in result.fetchall()]
-            required_columns = ['id', 'name', 'subject', 'grade', 'author']
-            missing_required = [col for col in required_columns if col not in final_columns]
-            
-            if missing_required:
-                print(f"  ❌ 여전히 누락된 필수 컬럼: {missing_required}")
-                print("  🔄 테이블 재생성 시도...")
-                # 테이블 재생성
-                session.execute(text("DROP TABLE IF EXISTS material CASCADE"))
-                session.commit()
-                # SQLModel로 테이블 재생성
-                from app.models.material import Material
-                from sqlmodel import SQLModel
-                SQLModel.metadata.create_all(engine, tables=[Material.__table__])
-                print("  ✅ material 테이블 재생성 완료")
-            
-            print("✅ 강제 스키마 수정 완료!")
+            print("✅ PostgreSQL 스키마 수정 완료!")
             
     except Exception as e:
-        print(f"❌ 강제 스키마 수정 실패: {e}")
+        print(f"❌ PostgreSQL 스키마 수정 실패: {e}")
+        import traceback
+        traceback.print_exc()
 
 def migrate_local_data_to_postgresql():
     """로컬 데이터를 PostgreSQL로 마이그레이션"""
@@ -454,6 +448,18 @@ async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 시 실행되는 함수"""
     # 시작 시
     print("🚀 애플리케이션 시작...")
+    
+    # PostgreSQL 스키마 수정 (배포 환경에서만)
+    database_url = os.getenv("DATABASE_URL", "")
+    if database_url and "postgresql" in database_url:
+        print("🔧 PostgreSQL 스키마 수정 시작...")
+        try:
+            force_fix_postgresql_schema()
+            print("✅ PostgreSQL 스키마 수정 완료!")
+        except Exception as e:
+            print(f"❌ PostgreSQL 스키마 수정 실패: {e}")
+            import traceback
+            traceback.print_exc()
     
     # 안전한 초기화만 실행 (강제 리셋 제거)
     print("🔧 안전한 초기화 시작...")

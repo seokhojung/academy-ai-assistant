@@ -22,10 +22,15 @@ const nextConfig: NextConfig = {
   ],
   // API 프록시 (CORS 문제 해결)
   async rewrites() {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const backendUrl = isDevelopment 
+      ? 'http://localhost:8000' 
+      : 'https://academy-ai-assistant.onrender.com';
+    
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
