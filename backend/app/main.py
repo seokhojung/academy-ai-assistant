@@ -456,6 +456,21 @@ async def lifespan(app: FastAPI):
         try:
             force_fix_postgresql_schema()
             print("✅ PostgreSQL 스키마 수정 완료!")
+            
+            # 강제 마이그레이션도 실행
+            print("🔄 강제 마이그레이션 시작...")
+            try:
+                from force_reset_postgresql import force_reset_postgresql
+                success = force_reset_postgresql()
+                if success:
+                    print("✅ 강제 마이그레이션 완료!")
+                else:
+                    print("❌ 강제 마이그레이션 실패!")
+            except Exception as e:
+                print(f"❌ 강제 마이그레이션 실패: {e}")
+                import traceback
+                traceback.print_exc()
+                
         except Exception as e:
             print(f"❌ PostgreSQL 스키마 수정 실패: {e}")
             import traceback
