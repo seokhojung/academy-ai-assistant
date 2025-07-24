@@ -169,7 +169,14 @@ export class HttpApiClient implements ApiClient {
     invalidateCache(entityType);
     console.log(`[API] 삭제 성공 및 캐시 무효화: ${entityType} ${id}`);
 
-    return await response.json();
+    // 응답이 비어있을 수 있으므로 안전하게 처리
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      // JSON이 아닌 경우 기본 성공 메시지 반환
+      return { message: `${entityType} ${id} deleted successfully` };
+    }
   }
 
   async executeCRUD(command: any): Promise<any> {

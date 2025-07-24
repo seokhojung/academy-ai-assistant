@@ -67,3 +67,18 @@ def delete_lecture(lecture_id: int, db: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Lecture not found")
     
     return {"message": "Lecture deleted successfully"} 
+
+@router.delete("/{lecture_id}/hard", summary="강의 완전 삭제")
+def hard_delete_lecture(
+    lecture_id: int,
+    session: Session = Depends(get_session)
+    # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
+):
+    """강의를 완전히 삭제합니다 (하드 딜리트)."""
+    service = LectureService(session)
+    success = service.hard_delete_lecture(lecture_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Lecture not found")
+    
+    return {"message": f"Lecture {lecture_id} permanently deleted"} 

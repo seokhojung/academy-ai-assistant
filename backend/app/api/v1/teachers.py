@@ -97,4 +97,4 @@ def hard_delete_teacher(
     if not success:
         raise HTTPException(status_code=404, detail="Teacher not found")
     
-    return {"message": "Teacher permanently deleted"} 
+    return {"message": f"Teacher {teacher_id} permanently deleted"} 

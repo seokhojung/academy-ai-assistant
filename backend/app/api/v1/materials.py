@@ -98,7 +98,7 @@ def delete_material(
     if not success:
         raise HTTPException(status_code=404, detail="Material not found")
 
-@router.delete("/{material_id}/hard", summary="교재 완전 삭제", status_code=204)
+@router.delete("/{material_id}/hard", summary="교재 완전 삭제")
 def hard_delete_material(
     material_id: int,
     session: Session = Depends(get_session)
@@ -109,4 +109,6 @@ def hard_delete_material(
     success = service.hard_delete_material(material_id)
     
     if not success:
-        raise HTTPException(status_code=404, detail="Material not found") 
+        raise HTTPException(status_code=404, detail="Material not found")
+    
+    return {"message": f"Material {material_id} permanently deleted"} 

@@ -107,10 +107,12 @@ def delete_student(student_id: int, db: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Student not found") 
 
 
-@router.delete("/{student_id}/hard", status_code=204)
+@router.delete("/{student_id}/hard")
 def hard_delete_student(student_id: int, db: Session = Depends(get_session)):
     """학생 완전 삭제 (하드 딜리트)"""
     service = StudentService(db)
     success = service.hard_delete_student(student_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Student not found") 
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    return {"message": f"Student {student_id} permanently deleted"} 
