@@ -451,6 +451,7 @@ def clean_migration():
     from datetime import datetime
     
     print("🧹 PostgreSQL 완전 초기화 및 정확한 마이그레이션 시작...")
+    print("🔄 캐시 문제 해결을 위한 강제 재실행...")
     
     # academy.db 경로 (Render에서는 업로드된 파일)
     sqlite_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "academy.db")
@@ -472,9 +473,6 @@ def clean_migration():
         # 1. PostgreSQL 모든 테이블 완전 삭제
         print("🗑️ PostgreSQL 모든 테이블 완전 삭제...")
         with postgres_engine.connect() as conn:
-            # 외래 키 제약 조건 비활성화
-            conn.execute(text("SET session_replication_role = replica;"))
-            
             # 모든 테이블 목록 가져오기
             result = conn.execute(text("""
                 SELECT tablename FROM pg_tables 
@@ -482,13 +480,33 @@ def clean_migration():
             """))
             tables = [row[0] for row in result.fetchall()]
             
-            # 각 테이블 완전 삭제
-            for table in tables:
-                print(f"  🗑️ 테이블 삭제: {table}")
-                conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+            # 각 테이블 완전 삭제 (권한 문제 해결)
+            # 외래 키 의존성을 고려한 삭제 순서
+            delete_order = ['lecture', 'material', 'teacher', 'student', 'user', 'usercolumnsettings']
             
-            # 외래 키 제약 조건 다시 활성화
-            conn.execute(text("SET session_replication_role = DEFAULT;"))
+            for table in delete_order:
+                if table in tables:
+                    print(f"  🗑️ 테이블 삭제: {table}")
+                    try:
+                        # CASCADE로 외래 키 제약 조건도 함께 삭제
+                        conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+                        print(f"    ✅ {table} 테이블 삭제 완료")
+                    except Exception as e:
+                        print(f"    ⚠️ {table} 테이블 삭제 실패: {e}")
+                        # 개별 테이블 삭제 실패해도 계속 진행
+                        continue
+            
+            # 남은 테이블들 삭제
+            for table in tables:
+                if table not in delete_order:
+                    print(f"  🗑️ 테이블 삭제: {table}")
+                    try:
+                        conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+                        print(f"    ✅ {table} 테이블 삭제 완료")
+                    except Exception as e:
+                        print(f"    ⚠️ {table} 테이블 삭제 실패: {e}")
+                        continue
+            
             conn.commit()
             
         print("✅ PostgreSQL 모든 테이블 삭제 완료!")
