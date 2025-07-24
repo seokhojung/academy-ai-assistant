@@ -79,6 +79,8 @@ export class HttpApiClient implements ApiClient {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
+      credentials: 'include',  // CORS 문제 해결
+      mode: 'cors'  // CORS 모드 명시
     });
 
     if (!response.ok) {
@@ -118,6 +120,8 @@ export class HttpApiClient implements ApiClient {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
+      credentials: 'include',  // CORS 문제 해결
+      mode: 'cors'  // CORS 모드 명시
     });
 
     if (!response.ok) {
@@ -153,6 +157,8 @@ export class HttpApiClient implements ApiClient {
     const response = await fetch(`${this.baseUrl}/${entityType}/${id}/hard`, {
       method: 'DELETE',
       headers: this.getHeaders(),
+      credentials: 'include',  // CORS 문제 해결
+      mode: 'cors'  // CORS 모드 명시
     });
 
     if (!response.ok) {
@@ -237,12 +243,13 @@ export class HttpApiClient implements ApiClient {
   }
 
   async getEntities(entityType: string): Promise<any[]> {
+    console.log(`[API] GET ${this.baseUrl}/${entityType}/`);
+    
     const response = await fetch(`${this.baseUrl}/${entityType}/`, {
-      headers: {
-        ...this.getHeaders(),
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
+      method: 'GET',
+      headers: this.getHeaders(),
+      credentials: 'include',  // CORS 문제 해결
+      mode: 'cors'  // CORS 모드 명시
     });
     
     if (!response.ok) {
