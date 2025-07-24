@@ -554,6 +554,9 @@ def sync_postgresql_data():
                             continue
                     postgres_session.commit()
                     print(f"      ✅ {table} 테이블 삽입 완료")
+            except Exception as e:
+                print(f"  ❌ {table} 테이블 처리 실패: {e}")
+                continue
     
     # 3. 결과 확인
     print("📊 동기화 결과 확인...")
