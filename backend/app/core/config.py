@@ -117,4 +117,8 @@ class Settings:
     # Debug
     debug: bool = config("DEBUG", default=True, cast=bool)
 
-settings = Settings() 
+settings = Settings()
+
+def get_settings() -> Settings:
+    """설정 객체를 반환하는 함수"""
+    return settings 

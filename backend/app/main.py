@@ -443,6 +443,132 @@ def force_reset_and_migrate():
     
     return True
 
+def sync_postgresql_data():
+    """PostgreSQL 데이터를 academy.db와 동기화"""
+    from app.core.config import settings
+    from sqlalchemy import create_engine, text
+    from sqlmodel import Session
+    from datetime import datetime
+    
+    # academy.db 경로 (Render에서는 업로드된 파일)
+    sqlite_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "academy.db")
+    if not os.path.exists(sqlite_path):
+        print(f"❌ academy.db 파일이 존재하지 않습니다: {sqlite_path}")
+        return False
+    
+    sqlite_engine = create_engine(f"sqlite:///{sqlite_path}")
+    
+    # PostgreSQL 연결 확인
+    if not settings.database_url or not settings.database_url.startswith("postgresql"):
+        print("❌ PostgreSQL 연결 정보 없음")
+        return False
+    
+    postgres_engine = create_engine(settings.database_url)
+    print(f"✅ PostgreSQL 연결 성공")
+    
+    # 1. 데이터 백업
+    print("📦 PostgreSQL 데이터 백업 중...")
+    with Session(postgres_engine) as session:
+        # 테이블 목록 가져오기
+        result = session.execute(text("""
+            SELECT tablename FROM pg_tables 
+            WHERE schemaname = 'public'
+        """))
+        tables = [row[0] for row in result.fetchall()]
+        
+        backup_data = {}
+        for table in tables:
+            print(f"  백업 중: {table}")
+            try:
+                # 테이블 스키마 가져오기
+                result = session.execute(text(f"PRAGMA table_info({table})"))
+                columns = [row[1] for row in result.fetchall()]
+                
+                # 데이터 가져오기
+                result = session.execute(text(f"SELECT * FROM {table}"))
+                rows = result.fetchall()
+                
+                # 딕셔너리로 변환
+                table_data = []
+                for row in rows:
+                    row_dict = {}
+                    for i, value in enumerate(row):
+                        row_dict[columns[i]] = value
+                    table_data.append(row_dict)
+                
+                backup_data[table] = table_data
+                print(f"      {len(table_data)}개 레코드 백업 완료")
+            except Exception as e:
+                print(f"  ⚠️ {table} 백업 실패: {e}")
+                continue
+    
+    # 2. academy.db 데이터 로드
+    print("📊 academy.db 데이터 로드 중...")
+    with Session(sqlite_engine) as session:
+        # 테이블 목록 가져오기
+        result = session.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+        tables = [row[0] for row in result.fetchall()]
+        
+        for table in tables:
+            print(f"  로드 중: {table}")
+            try:
+                # 테이블 스키마 가져오기
+                result = session.execute(text(f"PRAGMA table_info({table})"))
+                columns = [row[1] for row in result.fetchall()]
+                
+                # 데이터 가져오기
+                result = session.execute(text(f"SELECT * FROM {table}"))
+                rows = result.fetchall()
+                
+                # 딕셔너리로 변환
+                table_data = []
+                for row in rows:
+                    row_dict = {}
+                    for i, value in enumerate(row):
+                        row_dict[columns[i]] = value
+                    table_data.append(row_dict)
+                
+                # PostgreSQL에 삽입
+                with Session(postgres_engine) as postgres_session:
+                    for row_data in table_data:
+                        try:
+                            # ID 제거 (자동 생성)
+                            if 'id' in row_data:
+                                del row_data['id']
+                            
+                            # 데이터 타입 변환
+                            if 'is_active' in row_data:
+                                # SQLite의 integer (0,1)를 PostgreSQL boolean으로 변환
+                                row_data['is_active'] = bool(row_data['is_active']) if row_data['is_active'] is not None else True
+                            
+                            # SQL 쿼리 생성
+                            columns = list(row_data.keys())
+                            placeholders = ', '.join([':' + col for col in columns])
+                            column_names = ', '.join(columns)
+                            
+                            sql = f"INSERT INTO {table} ({column_names}) VALUES ({placeholders})"
+                            postgres_session.execute(text(sql), row_data)
+                        except Exception as e:
+                            print(f"      ❌ 레코드 삽입 실패: {e}")
+                            postgres_session.rollback()
+                            continue
+                    postgres_session.commit()
+                    print(f"      ✅ {table} 테이블 삽입 완료")
+    
+    # 3. 결과 확인
+    print("📊 동기화 결과 확인...")
+    with Session(postgres_engine) as session:
+        for table in ['student', 'teacher', 'material', 'lecture']:
+            try:
+                result = session.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                count = result.scalar()
+                print(f"    {table}: {count}개")
+            except Exception as e:
+                print(f"    {table}: 확인 실패 - {e}")
+    
+    print("✅ PostgreSQL 데이터가 academy.db와 동일해졌습니다!")
+    return True
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 시 실행되는 함수"""
@@ -457,17 +583,14 @@ async def lifespan(app: FastAPI):
             force_fix_postgresql_schema()
             print("✅ PostgreSQL 스키마 수정 완료!")
             
-            # 강제 마이그레이션도 실행
-            print("🔄 강제 마이그레이션 시작...")
+            # 데이터 동기화 실행
+            print("🔄 데이터 동기화 시작...")
             try:
-                from force_reset_postgresql import force_reset_postgresql
-                success = force_reset_postgresql()
-                if success:
-                    print("✅ 강제 마이그레이션 완료!")
-                else:
-                    print("❌ 강제 마이그레이션 실패!")
+                # 안전한 데이터 동기화 함수 사용
+                sync_postgresql_data()
+                print("✅ 데이터 동기화 완료!")
             except Exception as e:
-                print(f"❌ 강제 마이그레이션 실패: {e}")
+                print(f"❌ 데이터 동기화 실패: {e}")
                 import traceback
                 traceback.print_exc()
                 
