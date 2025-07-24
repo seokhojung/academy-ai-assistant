@@ -129,6 +129,18 @@ export class EditEntityCommand implements Command {
       data.phone = null;
     }
     
+    // certification 필드를 JSON 문자열로 변환
+    if (Array.isArray(data.certification)) {
+      data.certification = JSON.stringify(data.certification);
+    } else if (!data.certification || data.certification === "") {
+      data.certification = "[]";
+    }
+    
+    // hire_date가 없으면 현재 시간으로 설정
+    if (!data.hire_date || data.hire_date === null) {
+      data.hire_date = new Date().toISOString();
+    }
+    
     // email 필드 검증 (빈 문자열 방지 및 형식 검증)
     if (data.email === "" || data.email === null) {
       throw new Error("이메일은 필수입니다.");

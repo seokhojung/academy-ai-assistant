@@ -40,12 +40,12 @@ class TeacherCreate(SQLModel):
     experience_years: int = Field(default=0)
     education_level: str = Field(default="bachelor")
     specialization: str = Field(default="")
-    hire_date: Optional[datetime] = Field(default=None)
+    hire_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
     contract_type: str = Field(default="part_time")
     max_lectures: int = Field(default=5)
     rating: Optional[float] = Field(default=None)
     total_teaching_hours: int = Field(default=0)
-    certification: List[str] = Field(default=[])
+    certification: str = Field(default="[]")  # JSON 문자열로 변경
 
 
 class TeacherUpdate(SQLModel):
@@ -65,4 +65,4 @@ class TeacherUpdate(SQLModel):
     max_lectures: Optional[int] = Field(default=None)
     rating: Optional[float] = Field(default=None)
     total_teaching_hours: Optional[int] = Field(default=None)
-    certification: Optional[List[str]] = Field(default=None) 
+    certification: Optional[str] = Field(default=None)  # JSON 문자열로 변경 

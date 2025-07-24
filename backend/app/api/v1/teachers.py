@@ -5,6 +5,8 @@ from app.models import Teacher, TeacherCreate, TeacherUpdate
 from app.core.database import get_session
 from app.core.auth import AuthService
 from app.services.teacher_service import TeacherService
+import json
+from datetime import datetime
 
 router = APIRouter()
 
@@ -40,7 +42,16 @@ def create_teacher(
     # current_user = Depends(AuthService.get_current_active_user)  # 임시 비활성화
 ):
     """새로운 강사를 등록합니다."""
-    db_teacher = Teacher.from_orm(teacher)
+    # certification 필드를 JSON 문자열로 변환
+    teacher_data = teacher.dict()
+    if isinstance(teacher_data.get('certification'), list):
+        teacher_data['certification'] = json.dumps(teacher_data['certification'])
+    
+    # hire_date가 None인 경우 현재 시간으로 설정
+    if teacher_data.get('hire_date') is None:
+        teacher_data['hire_date'] = datetime.utcnow()
+    
+    db_teacher = Teacher(**teacher_data)
     session.add(db_teacher)
     session.commit()
     session.refresh(db_teacher)
@@ -60,6 +71,11 @@ def update_teacher(
         raise HTTPException(status_code=404, detail="Teacher not found")
     
     teacher_data = teacher.dict(exclude_unset=True)
+    
+    # certification 필드를 JSON 문자열로 변환
+    if 'certification' in teacher_data and isinstance(teacher_data['certification'], list):
+        teacher_data['certification'] = json.dumps(teacher_data['certification'])
+    
     for key, value in teacher_data.items():
         setattr(db_teacher, key, value)
     
