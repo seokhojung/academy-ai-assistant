@@ -671,8 +671,7 @@ app.add_middleware(
         "http://localhost:3001", 
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
-        "https://academy-ai-assistants.vercel.app",
-        "*"  # 개발 환경용 (프로덕션에서는 제거)
+        "https://academy-ai-assistants.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],

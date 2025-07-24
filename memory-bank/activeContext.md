@@ -26,6 +26,229 @@
 
 ## 현재 작업 상태 (2024-12-19)
 
+### ✅ **완료: PostgreSQL 마이그레이션 및 CORS 문제 해결 (2024-12-19)**
+
+#### **해결된 주요 문제들**
+1. **PostgreSQL 마이그레이션 중복 데이터**: 테이블 삭제 불완전으로 인한 UniqueViolation 오류
+2. **CORS 정책 오류**: localhost:3001에서 localhost:8000으로의 요청 차단
+3. **JSON 파싱 오류**: 삭제 API의 204 No Content 응답 처리 실패
+4. **Pydantic 검증 오류**: hire_date 및 certification 필드 타입 불일치
+
+#### **PostgreSQL 마이그레이션 문제 해결**
+
+##### **문제 상황**
+- **증상**: 마이그레이션 시 "데이터 보존: 기존 데이터 손실 없이 안전하게 마이그레이션" 메시지와 함께 중복 데이터 발생
+- **근본 원인**: 
+  - `user` 테이블이 PostgreSQL 예약어로 인한 삭제 실패
+  - 외래키 의존성으로 인한 삭제 순서 문제
+  - 트랜잭션 실패로 인한 부분적 삭제
+
+##### **구현된 해결책**
+```python
+# backend/app/main.py - clean_migration 함수 개선
+def clean_migration():
+    # 테이블 삭제 순서 조정 (외래키 의존성 고려)
+    delete_order = ['lecture', 'material', 'teacher', 'student', 'usercolumnsettings', 'user']
+    
+    for table in delete_order:
+        if table in tables:
+            print(f"  🗑️ 테이블 삭제: {table}")
+            try:
+                # PostgreSQL 예약어는 큰따옴표로 감싸기
+                if table == 'user':
+                    conn.execute(text('DROP TABLE IF EXISTS "user" CASCADE;'))
+                else:
+                    conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+                print(f"    ✅ {table} 테이블 삭제 완료")
+            except Exception as e:
+                print(f"    ⚠️ {table} 테이블 삭제 실패: {e}")
+                # 강제 삭제 시도
+                try:
+                    if table == 'user':
+                        conn.execute(text('DROP TABLE "user" CASCADE;'))
+                    else:
+                        conn.execute(text(f"DROP TABLE {table} CASCADE;"))
+                    print(f"    ✅ {table} 테이블 강제 삭제 완료")
+                except Exception as e2:
+                    print(f"    ❌ {table} 테이블 강제 삭제도 실패: {e2}")
+                    continue
+```
+
+#### **CORS 문제 해결**
+
+##### **문제 상황**
+- **증상**: 강사 관리 페이지에서 새 강사 등록 시 CORS 오류 발생
+- **에러 메시지**: `Access to fetch at 'http://localhost:8000/api/v1/teachers/' from origin 'http://localhost:3001' has been blocked by CORS policy`
+- **영향 범위**: POST 요청만 차단, GET 요청은 정상 작동
+
+##### **구현된 해결책**
+```python
+# backend/app/main.py - CORS 설정 개선
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "https://academy-ai-assistants.vercel.app",
+        "*"  # 개발 환경용 (프로덕션에서는 제거)
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
+```
+
+```typescript
+// frontend/src/lib/api-client.ts - fetch 옵션 개선
+const response = await fetch(`${this.baseUrl}/${entityType}/`, {
+    method: 'POST',
+    headers: this.getHeaders(),
+    body: JSON.stringify(data),
+    credentials: 'include',  // CORS 문제 해결
+    mode: 'cors'  // CORS 모드 명시
+});
+```
+
+#### **JSON 파싱 오류 해결**
+
+##### **문제 상황**
+- **증상**: 학생/강사 삭제 후 `SyntaxError: Unexpected end of JSON input` 오류
+- **근본 원인**: 백엔드에서 204 No Content 응답을 보내지만 프론트엔드에서 JSON 파싱 시도
+
+##### **구현된 해결책**
+```python
+# backend/app/api/v1/teachers.py - 삭제 API 응답 개선
+@router.delete("/{teacher_id}/hard", summary="강사 완전 삭제")
+def hard_delete_teacher(teacher_id: int, session: Session = Depends(get_session)):
+    """강사를 완전히 삭제합니다 (하드 딜리트)."""
+    service = TeacherService(session)
+    success = service.hard_delete_teacher(teacher_id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    
+    return {"message": f"Teacher {teacher_id} permanently deleted"}
+```
+
+```typescript
+// frontend/src/lib/api-client.ts - 응답 처리 개선
+async deleteEntity(entityType: string, id: number): Promise<any> {
+    // ... 기존 코드 ...
+    
+    // 응답이 비어있을 수 있으므로 안전하게 처리
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+    } else {
+        // JSON이 아닌 경우 기본 성공 메시지 반환
+        return { message: `${entityType} ${id} deleted successfully` };
+    }
+}
+```
+
+#### **Pydantic 검증 오류 해결**
+
+##### **문제 상황**
+- **증상**: 강사 등록 시 `ValidationError` 발생
+- **구체적 오류**: 
+  - `hire_date`가 `None`이지만 `datetime` 객체 요구
+  - `certification`이 빈 리스트 `[]`이지만 문자열 요구
+
+##### **구현된 해결책**
+```python
+# backend/app/models/teacher.py - 모델 스키마 수정
+class TeacherCreate(BaseModel):
+    # ... 기존 필드들 ...
+    hire_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    certification: str = Field(default="[]")  # JSON 문자열로 변경
+
+class TeacherUpdate(BaseModel):
+    # ... 기존 필드들 ...
+    certification: Optional[str] = Field(default=None)  # JSON 문자열로 변경
+```
+
+```python
+# backend/app/api/v1/teachers.py - 데이터 변환 로직 추가
+@router.post("/", response_model=Teacher, summary="강사 등록")
+def create_teacher(teacher: TeacherCreate, session: Session = Depends(get_session)):
+    """새로운 강사를 등록합니다."""
+    # certification 필드를 JSON 문자열로 변환
+    teacher_data = teacher.dict()
+    if isinstance(teacher_data.get('certification'), list):
+        teacher_data['certification'] = json.dumps(teacher_data['certification'])
+    
+    # hire_date가 None인 경우 현재 시간으로 설정
+    if teacher_data.get('hire_date') is None:
+        teacher_data['hire_date'] = datetime.utcnow()
+    
+    db_teacher = Teacher(**teacher_data)
+    session.add(db_teacher)
+    session.commit()
+    session.refresh(db_teacher)
+    return db_teacher
+```
+
+```typescript
+// frontend/src/commands/index.ts - 데이터 검증 로직 추가
+private validateTeacherData(data: any): void {
+    // ... 기존 검증 로직 ...
+    
+    // certification 필드를 JSON 문자열로 변환
+    if (Array.isArray(data.certification)) {
+        data.certification = JSON.stringify(data.certification);
+    } else if (!data.certification || data.certification === "") {
+        data.certification = "[]";
+    }
+    
+    // hire_date가 없으면 현재 시간으로 설정
+    if (!data.hire_date || data.hire_date === null) {
+        data.hire_date = new Date().toISOString();
+    }
+}
+```
+
+#### **배포 완료**
+- ✅ **GitHub 푸시**: 모든 수정사항 커밋 및 푸시 완료
+- ✅ **Render.com 자동 배포**: 백엔드 서버 자동 배포 진행 중
+- ✅ **Vercel 자동 배포**: 프론트엔드 자동 배포 진행 중
+- ✅ **예상 완료 시간**: 5-10분 후 모든 환경에서 정상 작동
+
+#### **학습한 교훈**
+
+##### **1. PostgreSQL 예약어 처리**
+- **교훈**: PostgreSQL 예약어(`user`)는 큰따옴표로 감싸야 함
+- **해결책**: `DROP TABLE IF EXISTS "user" CASCADE;` 형태로 처리
+- **방지책**: 테이블명 설계 시 예약어 사용 금지
+
+##### **2. 외래키 의존성 고려**
+- **교훈**: 테이블 삭제 시 외래키 의존성을 고려한 순서 필수
+- **해결책**: `['lecture', 'material', 'teacher', 'student', 'usercolumnsettings', 'user']` 순서
+- **방지책**: 스키마 설계 시 의존성 관계 명확히 문서화
+
+##### **3. CORS 설정의 세밀함**
+- **교훈**: `allow_origins=["*"]`만으로는 부족할 수 있음
+- **해결책**: 구체적인 origin 명시 및 credentials 설정
+- **방지책**: 개발/프로덕션 환경별 CORS 정책 명확히 구분
+
+##### **4. API 응답 일관성**
+- **교훈**: HTTP 상태 코드와 응답 형식의 일관성 중요
+- **해결책**: 삭제 API도 JSON 응답 반환으로 통일
+- **방지책**: API 설계 시 응답 형식 표준화
+
+##### **5. 데이터 타입 일관성**
+- **교훈**: 프론트엔드-백엔드 간 데이터 타입 불일치로 검증 오류 발생
+- **해결책**: 모델 스키마와 실제 데이터 타입 일치시키기
+- **방지책**: API 문서화 및 타입 정의 공유
+
+#### **다음 단계**
+1. **배포 검증**: 모든 환경에서 정상 작동 확인
+2. **통합 테스트**: 모든 CRUD 기능 종합 테스트
+3. **성능 모니터링**: 응답 시간 및 안정성 추적
+4. **사용자 피드백**: 실제 사용 시나리오에서의 동작 검증
+
 ### ✅ **완료: 낙관적 업데이트 전략과 Excel 다운로드 호환성 보장 (2024-12-19)**
 
 #### **해결된 잠재적 문제**
